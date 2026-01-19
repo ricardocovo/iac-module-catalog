@@ -44,4 +44,25 @@ Use Azure Verified Modules for Bicep to enforce Azure best practices via pre-bui
 - Use `azure_get_deployment_best_practices` tool for deployment guidance
 - Use `azure_get_schema_for_Bicep` tool for schema validation
 - Use `microsoft.docs.mcp` tool to look up Azure service-specific guidance
-`
+
+## Writing modules
+
+When writing modules, follow this guidelines:
+
+- Follow Azure AVM Bicep best practices
+- Follow categories described on best practices
+- Each modules should be on its own folder
+  - Module file will be named `main.bicep`
+  - Include `README.md` with documentation of module and description of the  examples
+
+Example:
+```
+catalog/
+  storage/
+    storage-account/
+      examples/
+        example1.bicep
+        example2.bicep
+      main.bicep
+      README.md
+``` 
