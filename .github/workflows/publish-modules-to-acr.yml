@@ -1,0 +1,271 @@
+name: Publish Bicep Modules to ACR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'catalog/**/main.bicep'
+  workflow_dispatch:
+    inputs:
+      force_publish:
+        description: 'Force publish even if version exists'
+        required: false
+        type: boolean
+        default: false
+
+# Security: Default to read-only permissions
+permissions:
+  contents: read
+  id-token: write # Required for OIDC authentication to Azure
+
+# Prevent concurrent publishes
+concurrency:
+  group: publish-modules
+  cancel-in-progress: false
+
+env:
+  BICEP_VERSION: '0.24.24'
+
+jobs:
+  detect-changed-modules:
+    name: Detect Changed Modules
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has-changes: ${{ steps.set-matrix.outputs.has-changes }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for accurate diff
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          files: |
+            catalog/**/main.bicep
+          json: true
+
+      - name: Set module matrix
+        id: set-matrix
+        run: |
+          set -euo pipefail
+          
+          if [[ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Detected changed Bicep modules or manual trigger"
+            
+            # Build matrix of all modules (not just changed ones for workflow_dispatch)
+            modules='[]'
+            
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] || [[ "${{ inputs.force_publish }}" == "true" ]]; then
+              # Publish all modules on manual trigger
+              modules=$(find catalog -name "main.bicep" -type f | jq -R -s -c 'split("\n")[:-1]')
+            else
+              # Only publish changed modules
+              modules=$(echo '${{ steps.changed-files.outputs.all_changed_files }}' | jq -c .)
+            fi
+            
+            echo "matrix=$modules" >> $GITHUB_OUTPUT
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            
+            echo "Modules to process:"
+            echo "$modules" | jq -r '.[]'
+          else
+            echo "No module changes detected"
+            echo "matrix=[]" >> $GITHUB_OUTPUT
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+
+  publish-modules:
+    name: Publish Module
+    needs: detect-changed-modules
+    if: needs.detect-changed-modules.outputs.has-changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        module-path: ${{ fromJson(needs.detect-changed-modules.outputs.matrix) }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bicep CLI
+        run: |
+          curl -Lo bicep https://github.com/Azure/bicep/releases/download/v${{ env.BICEP_VERSION }}/bicep-linux-x64
+          chmod +x ./bicep
+          sudo mv ./bicep /usr/local/bin/bicep
+          bicep --version
+
+      - name: Extract module metadata
+        id: metadata
+        run: |
+          set -euo pipefail
+          
+          MODULE_PATH="${{ matrix.module-path }}"
+          
+          # Extract category and module name from path
+          # Example: catalog/ai/cognitive-services-account/main.bicep
+          CATEGORY=$(echo "$MODULE_PATH" | cut -d'/' -f2)
+          MODULE_NAME=$(echo "$MODULE_PATH" | cut -d'/' -f3)
+          
+          # Extract version from the module reference
+          VERSION=$(grep -oP "br/public:avm/res/[^:]+:\K[0-9]+\.[0-9]+\.[0-9]+" "$MODULE_PATH" | head -1)
+          
+          if [[ -z "$VERSION" ]]; then
+            echo "ERROR: Could not extract version from $MODULE_PATH"
+            exit 1
+          fi
+          
+          # Construct ACR repository name: bicep/{category}/{module-name}
+          ACR_REPO="bicep/${CATEGORY}/${MODULE_NAME}"
+          
+          echo "category=$CATEGORY" >> $GITHUB_OUTPUT
+          echo "module-name=$MODULE_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "acr-repo=$ACR_REPO" >> $GITHUB_OUTPUT
+          echo "module-dir=$(dirname "$MODULE_PATH")" >> $GITHUB_OUTPUT
+          
+          echo "📦 Module: $MODULE_NAME"
+          echo "📂 Category: $CATEGORY"
+          echo "🏷️  Version: $VERSION"
+          echo "🎯 ACR Repo: $ACR_REPO"
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Check if version exists in ACR
+        id: check-version
+        run: |
+          set -euo pipefail
+          
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          ACR_REPO="${{ steps.metadata.outputs.acr-repo }}"
+          VERSION="${{ steps.metadata.outputs.version }}"
+          
+          # Check if tag exists
+          if az acr repository show-tags \
+              --name "$ACR_NAME" \
+              --repository "$ACR_REPO" \
+              --output tsv 2>/dev/null | grep -q "^${VERSION}$"; then
+            echo "Version $VERSION already exists in $ACR_REPO"
+            echo "exists=true" >> $GITHUB_OUTPUT
+            
+            if [[ "${{ inputs.force_publish }}" == "true" ]]; then
+              echo "Force publish enabled - will overwrite existing version"
+              echo "should-publish=true" >> $GITHUB_OUTPUT
+            else
+              echo "Skipping publish"
+              echo "should-publish=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Version $VERSION does not exist - will publish"
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "should-publish=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Bicep module
+        if: steps.check-version.outputs.should-publish == 'true'
+        run: |
+          set -euo pipefail
+          
+          MODULE_DIR="${{ steps.metadata.outputs.module-dir }}"
+          
+          echo "Building module in $MODULE_DIR"
+          cd "$MODULE_DIR"
+          
+          # Build and validate
+          bicep build main.bicep --outfile /tmp/main.json
+          
+          echo "✅ Module built successfully"
+
+      - name: Publish to ACR
+        if: steps.check-version.outputs.should-publish == 'true'
+        run: |
+          set -euo pipefail
+          
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          ACR_REPO="${{ steps.metadata.outputs.acr-repo }}"
+          VERSION="${{ steps.metadata.outputs.version }}"
+          MODULE_DIR="${{ steps.metadata.outputs.module-dir }}"
+          
+          # Build full ACR path
+          ACR_TARGET="${ACR_NAME}.azurecr.io/${ACR_REPO}:${VERSION}"
+          
+          echo "Publishing to: $ACR_TARGET"
+          
+          # Publish module to ACR
+          cd "$MODULE_DIR"
+          az bicep publish \
+            --file main.bicep \
+            --target "br:${ACR_TARGET}" \
+            --force
+          
+          echo "✅ Published $ACR_REPO:$VERSION to ACR"
+          
+          # Also tag as 'latest' for the major version
+          MAJOR_VERSION=$(echo "$VERSION" | cut -d. -f1)
+          az acr import \
+            --name "$ACR_NAME" \
+            --source "${ACR_NAME}.azurecr.io/${ACR_REPO}:${VERSION}" \
+            --image "${ACR_REPO}:v${MAJOR_VERSION}" \
+            --force || echo "Could not tag major version"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### 📦 Module Publish Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Module:** \`${{ steps.metadata.outputs.module-name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Category:** \`${{ steps.metadata.outputs.category }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ steps.metadata.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**ACR Repository:** \`${{ steps.metadata.outputs.acr-repo }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ steps.check-version.outputs.should-publish }}" == "true" ]]; then
+            echo "✅ **Status:** Published successfully" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Usage:**" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bicep" >> $GITHUB_STEP_SUMMARY
+            echo "module example 'br:${{ secrets.ACR_NAME }}.azurecr.io/${{ steps.metadata.outputs.acr-repo }}:${{ steps.metadata.outputs.version }}' = {" >> $GITHUB_STEP_SUMMARY
+            echo "  name: 'example-deployment'" >> $GITHUB_STEP_SUMMARY
+            echo "  params: {" >> $GITHUB_STEP_SUMMARY
+            echo "    // Add parameters here" >> $GITHUB_STEP_SUMMARY
+            echo "  }" >> $GITHUB_STEP_SUMMARY
+            echo "}" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ steps.check-version.outputs.exists }}" == "true" ]]; then
+            echo "⏭️ **Status:** Skipped (version already exists)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  summary:
+    name: Publish Summary
+    needs: [detect-changed-modules, publish-modules]
+    if: always() && needs.detect-changed-modules.outputs.has-changes == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# 🚀 Bicep Module Publish Workflow" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow Run:** [\#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.publish-modules.result }}" == "success" ]]; then
+            echo "✅ All modules processed successfully" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.publish-modules.result }}" == "failure" ]]; then
+            echo "❌ Some modules failed to publish" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Modules processed with warnings" >> $GITHUB_STEP_SUMMARY
+          fi
