@@ -100,6 +100,33 @@ module openai './catalog/ai/cognitive-services-account.bicep' = {
 }
 ```
 
+### Using Modules from Azure Container Registry
+
+Modules are automatically published to Azure Container Registry via GitHub Actions. Reference them directly in your templates:
+
+```bicep
+// Reference module from ACR with specific version
+module vnet 'br:myacr.azurecr.io/bicep/network/virtual-network:0.4.0' = {
+  name: 'vnet-deployment'
+  params: {
+    name: 'vnet-hub-foundry-cac'
+    location: 'canadacentral'
+    addressPrefixes: ['10.0.0.0/16']
+  }
+}
+
+// Or use major version tag (auto-updates to latest minor/patch)
+module openai 'br:myacr.azurecr.io/bicep/ai/cognitive-services-account:v0' = {
+  name: 'openai-deployment'
+  params: {
+    name: 'oai-foundry-cac'
+    kind: 'OpenAI'
+  }
+}
+```
+
+🔧 **[Setup ACR Publishing](.github/workflows/README.md)** - Configure automatic module publishing
+
 ## 🏗️ Architecture
 
 This catalog supports the **Baseline Microsoft Foundry Landing Zone** architecture:
@@ -320,15 +347,36 @@ az deployment group create --template-file catalog/containers/container-app.bice
 
 ## 🔄 Version Management
 
-All modules are version controlled in this repository:
+All modules are version controlled in this repository and published to Azure Container Registry:
+
+### Local Development
 
 ```bicep
 // Reference catalog modules with relative paths
-module example './catalog/<category>/<module>.bicep'
-
-// Or use git tags for version control
-module example 'git::https://github.com/org/iac-module-catalog.git?ref=v1.0.0//catalog/<category>/<module>.bicep'
+module example './catalog/<category>/<module>/main.bicep'
 ```
+
+### Production via ACR
+
+```bicep
+// Use published modules from Azure Container Registry
+module example 'br:myacr.azurecr.io/bicep/<category>/<module>:<version>' = {
+  name: 'deployment-name'
+  params: { /* ... */ }
+}
+```
+
+### CI/CD Publishing
+
+The [GitHub Actions workflow](.github/workflows/README.md) automatically publishes modules to ACR when:
+- Changes are pushed to `main` branch
+- Any `main.bicep` file in `catalog/` is modified
+- Version is extracted from AVM module reference
+- Only new versions are published (existing versions are skipped)
+
+**Repository Naming Convention:** `bicep/{category}/{module-name}:{version}`
+
+📖 **[Full Setup Guide](.github/workflows/README.md)**
 
 ## 📊 Module Statistics
 
