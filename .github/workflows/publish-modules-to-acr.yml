@@ -83,6 +83,8 @@ jobs:
     needs: detect-changed-modules
     if: needs.detect-changed-modules.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      publish-results: ${{ steps.collect-results.outputs.results }}
     strategy:
       fail-fast: false
       max-parallel: 5
@@ -128,6 +130,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "acr-repo=$ACR_REPO" >> $GITHUB_OUTPUT
           echo "module-dir=$(dirname "$MODULE_PATH")" >> $GITHUB_OUTPUT
+          echo "module-path=$MODULE_PATH" >> $GITHUB_OUTPUT
           
           echo "📦 Module: $MODULE_NAME"
           echo "📂 Category: $CATEGORY"
@@ -221,6 +224,21 @@ jobs:
       - name: Summary
         if: always()
         run: |
+          # Determine the actual status for this module
+          if [[ "${{ steps.check-version.outputs.should-publish }}" == "true" ]]; then
+            ACTUAL_STATUS="published"
+          elif [[ "${{ steps.check-version.outputs.exists }}" == "true" ]]; then
+            ACTUAL_STATUS="exists"
+          else
+            ACTUAL_STATUS="failed"
+          fi
+          
+          # Save status to file for summary job
+          mkdir -p /tmp/module-status
+          cat > /tmp/module-status/${{ steps.metadata.outputs.category }}-${{ steps.metadata.outputs.module-name }}.txt << EOF
+          ${{ steps.metadata.outputs.module-path }}|${{ steps.metadata.outputs.category }}|${{ steps.metadata.outputs.module-name }}|${{ steps.metadata.outputs.version }}|${{ steps.metadata.outputs.acr-repo }}|${ACTUAL_STATUS}
+          EOF
+          
           echo "### 📦 Module Publish Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Module:** \`${{ steps.metadata.outputs.module-name }}\`" >> $GITHUB_STEP_SUMMARY
@@ -247,6 +265,14 @@ jobs:
             echo "❌ **Status:** Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
+      - name: Upload status artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: module-status-${{ steps.metadata.outputs.category }}-${{ steps.metadata.outputs.module-name }}
+          path: /tmp/module-status/
+          retention-days: 1
+
   summary:
     name: Publish Summary
     needs: [detect-changed-modules, publish-modules]
@@ -256,12 +282,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Azure Login via OIDC
-        uses: azure/login@v2
+      - name: Download all status artifacts
+        uses: actions/download-artifact@v4
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          pattern: module-status-*
+          path: /tmp/module-statuses
+          merge-multiple: true
 
       - name: Generate summary
         run: |
@@ -288,48 +314,38 @@ jobs:
           echo "| Category | Module | Version | ACR Repository | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|--------|---------|----------------|--------|" >> $GITHUB_STEP_SUMMARY
           
-          # Parse the module matrix and check status of each
-          MODULES='${{ needs.detect-changed-modules.outputs.matrix }}'
-          ACR_NAME="${{ secrets.ACR_NAME }}"
-          
-          echo "$MODULES" | jq -r '.[]' | while IFS= read -r MODULE_PATH; do
-            if [[ -z "$MODULE_PATH" ]]; then
-              continue
-            fi
-            
-            # Extract metadata
-            CATEGORY=$(echo "$MODULE_PATH" | cut -d'/' -f2)
-            MODULE_NAME=$(echo "$MODULE_PATH" | cut -d'/' -f3)
-            VERSION=$(grep -oP "br/public:avm/res/[^:]+:\K[0-9]+\.[0-9]+\.[0-9]+" "$MODULE_PATH" | head -1)
-            ACR_REPO="bicep/${CATEGORY}/${MODULE_NAME}"
-            
-            # Check if version exists in ACR
-            if az acr repository show-tags \
-                --name "$ACR_NAME" \
-                --repository "$ACR_REPO" \
-                --output tsv 2>/dev/null | grep -q "^${VERSION}$"; then
-              
-              # Check if it was just published (workflow succeeded) or already existed
-              if [[ "${{ needs.publish-modules.result }}" == "success" ]]; then
-                STATUS="✅ Published"
-              else
-                STATUS="⏭️ Exists"
+          # Read status from artifacts created by publish jobs
+          if [ -d "/tmp/module-statuses" ]; then
+            for status_file in /tmp/module-statuses/*.txt; do
+              if [ -f "$status_file" ]; then
+                # Read the status line: path|category|module|version|repo|status
+                IFS='|' read -r MODULE_PATH CATEGORY MODULE_NAME VERSION ACR_REPO ACTUAL_STATUS < "$status_file"
+                
+                # Convert status to display format
+                case "$ACTUAL_STATUS" in
+                  "published")
+                    STATUS="✅ Published"
+                    ;;
+                  "exists")
+                    STATUS="⏭️ Exists"
+                    ;;
+                  "failed")
+                    STATUS="❌ Failed"
+                    ;;
+                  *)
+                    STATUS="⚠️ Unknown"
+                    ;;
+                esac
+                
+                echo "| \`${CATEGORY}\` | \`${MODULE_NAME}\` | \`${VERSION}\` | \`${ACR_REPO}\` | ${STATUS} |" >> $GITHUB_STEP_SUMMARY
               fi
-            else
-              # Version doesn't exist - check if publish failed
-              if [[ "${{ needs.publish-modules.result }}" == "failure" ]]; then
-                STATUS="❌ Failed"
-              else
-                STATUS="⏭️ Skipped"
-              fi
-            fi
-            
-            echo "| \`${CATEGORY}\` | \`${MODULE_NAME}\` | \`${VERSION}\` | \`${ACR_REPO}\` | ${STATUS} |" >> $GITHUB_STEP_SUMMARY
-          done
+            done
+          else
+            echo "| - | - | - | - | ⚠️ No status data |" >> $GITHUB_STEP_SUMMARY
+          fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Legend" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ **Published**: Successfully published to ACR in this run" >> $GITHUB_STEP_SUMMARY
           echo "- ⏭️ **Exists**: Version already exists in ACR (skipped)" >> $GITHUB_STEP_SUMMARY
-          echo "- ⏭️ **Skipped**: Module was not published (e.g., version check prevented publish)" >> $GITHUB_STEP_SUMMARY
           echo "- ❌ **Failed**: Publish operation failed" >> $GITHUB_STEP_SUMMARY
