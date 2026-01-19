@@ -2,6 +2,8 @@
 
 Pre-approved Bicep module catalog for deploying Microsoft Foundry landing zone architectures with enterprise security and compliance.
 
+This catalog is meant to be Architecture agnostic.
+
 ## 🎯 Overview
 
 This catalog provides production-ready, validated Bicep modules for enterprise Azure deployments. All modules are designed for:
@@ -35,71 +37,6 @@ This catalog provides production-ready, validated Bicep modules for enterprise A
 - [Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install) installed
 - Azure subscription with appropriate permissions
 
-### Deploy Your First Module
-
-```bash
-# Login to Azure
-az login
-
-# Set subscription
-az account set --subscription "your-subscription-id"
-
-# Deploy a Virtual Network
-az deployment group create \
-  --resource-group rg-foundry-canadacentral \
-  --template-file catalog/network/virtual-network.bicep \
-  --parameters \
-    name=vnet-spoke-foundry-cac \
-    location=canadacentral \
-    addressPrefixes='["10.1.0.0/16"]' \
-    subnets='[{"name":"app","addressPrefix":"10.1.1.0/24"}]'
-```
-
-### Using in Your Bicep Templates
-
-Reference modules from this catalog:
-
-```bicep
-// Reference catalog module
-module vnet './catalog/network/virtual-network.bicep' = {
-  name: 'vnet-deployment'
-  params: {
-    name: 'vnet-hub-foundry-cac'
-    location: 'canadacentral'
-    addressPrefixes: ['10.0.0.0/16']
-    subnets: [
-      {
-        name: 'AzureFirewallSubnet'
-        addressPrefix: '10.0.1.0/24'
-      }
-    ]
-  }
-}
-
-// Reference another catalog module
-module openai './catalog/ai/cognitive-services-account.bicep' = {
-  name: 'openai-deployment'
-  params: {
-    name: 'oai-foundry-cac'
-    kind: 'OpenAI'
-    customSubDomainName: 'oai-foundry-cac'
-    deployments: [
-      {
-        name: 'gpt-4o'
-        model: {
-          name: 'gpt-4o'
-          version: '2024-08-06'
-        }
-        sku: {
-          name: 'Standard'
-          capacity: 10
-        }
-      }
-    ]
-  }
-}
-```
-
 ### Using Modules from Azure Container Registry
 
 Modules are automatically published to Azure Container Registry via GitHub Actions. Reference them directly in your templates:
@@ -124,49 +61,7 @@ module openai 'br:myacr.azurecr.io/bicep/ai/cognitive-services-account:v0' = {
   }
 }
 ```
-
-🔧 **[Setup ACR Publishing](.github/workflows/README.md)** - Configure automatic module publishing
-
-## 🏗️ Architecture
-
-This catalog supports the **Baseline Microsoft Foundry Landing Zone** architecture:
-
-```
-┌─────────────────────────────────────────────────┐
-│  Hub Virtual Network (Management)               │
-│  ├─ Azure Firewall (Egress Filtering)           │
-│  ├─ Azure Bastion (Secure Access)               │
-│  ├─ VPN/ExpressRoute Gateway (Hybrid)           │
-│  └─ DNS Private Resolver                        │
-└─────────────────────────────────────────────────┘
-                    │ Peering
-┌─────────────────────────────────────────────────┐
-│  Spoke Virtual Network (AI Workloads)           │
-│  ├─ Application Subnet                          │
-│  │  ├─ Container Apps                           │
-│  │  └─ App Services (VNet Integrated)           │
-│  ├─ Private Endpoint Subnet                     │
-│  │  ├─ Azure OpenAI                             │
-│  │  ├─ Azure AI Search                          │
-│  │  ├─ Cosmos DB                                │
-│  │  ├─ Redis Cache                              │
-│  │  ├─ Storage Account                          │
-│  │  └─ Key Vault                                │
-│  └─ Data Subnet                                 │
-│     ├─ PostgreSQL Flexible Server               │
-│     └─ Azure SQL                                │
-└─────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────┐
-│  Shared Services (Regional/Global)              │
-│  ├─ Private DNS Zones                           │
-│  ├─ DDoS Protection Plan                        │
-│  ├─ Log Analytics Workspace                     │
-│  └─ Application Insights                        │
-└─────────────────────────────────────────────────┘
-```
-
-📐 **[View Architecture Diagram](docs/architectures/baseline-microsoft-foundry-landing-zone.svg)**
+**[Setup ACR Publishing](.github/workflows/README.md)** - Configure automatic module publishing
 
 ## 🔒 Security & Compliance
 
@@ -208,64 +103,6 @@ tags: {
   workload: 'foundry'
   dataClassification: 'confidential'
   costCenter: 'ai-platform'
-}
-```
-
-## 🤖 AI Workload Patterns
-
-### Conversational AI Application
-
-```bicep
-// 1. Deploy Container Apps Environment
-module containerEnv 'catalog/containers/container-apps-environment.bicep' = {
-  params: {
-    name: 'cae-chat-cac'
-    workspaceResourceId: logAnalytics.outputs.resourceId
-    infrastructureSubnetId: appSubnetId
-  }
-}
-
-// 2. Deploy Cosmos DB for chat history
-module cosmosDb 'catalog/data/cosmos-db-account.bicep' = {
-  params: {
-    name: 'cosmos-chat-cac'
-    sqlDatabases: [{
-      name: 'conversations'
-      containers: [{
-        name: 'history'
-        partitionKeyPath: '/userId'
-      }]
-    }]
-  }
-}
-
-// 3. Deploy Redis for session state
-module redis 'catalog/data/redis-cache.bicep' = {
-  params: {
-    name: 'redis-chat-cac'
-    skuName: 'Premium'
-  }
-}
-
-// 4. Deploy AI Services
-module openai 'catalog/ai/cognitive-services-account.bicep' = {
-  params: {
-    name: 'oai-chat-cac'
-    kind: 'OpenAI'
-    deployments: [{
-      name: 'gpt-4o'
-      model: { name: 'gpt-4o', version: '2024-08-06' }
-    }]
-  }
-}
-
-// 5. Deploy Chat Application
-module chatApp 'catalog/containers/container-app.bicep' = {
-  params: {
-    name: 'ca-chat-ui'
-    environmentResourceId: containerEnv.outputs.resourceId
-    containers: [{ name: 'chat', image: 'acr.azurecr.io/chat:latest' }]
-  }
 }
 ```
 
