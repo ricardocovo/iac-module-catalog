@@ -253,8 +253,20 @@ jobs:
     if: always() && needs.detect-changed-modules.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Generate summary
         run: |
+          set -euo pipefail
+          
           echo "# 🚀 Bicep Module Publish Workflow" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Workflow Run:** [\#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
@@ -269,3 +281,55 @@ jobs:
           else
             echo "⚠️ Modules processed with warnings" >> $GITHUB_STEP_SUMMARY
           fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Module Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Module | Version | ACR Repository | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|---------|----------------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Parse the module matrix and check status of each
+          MODULES='${{ needs.detect-changed-modules.outputs.matrix }}'
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          
+          echo "$MODULES" | jq -r '.[]' | while IFS= read -r MODULE_PATH; do
+            if [[ -z "$MODULE_PATH" ]]; then
+              continue
+            fi
+            
+            # Extract metadata
+            CATEGORY=$(echo "$MODULE_PATH" | cut -d'/' -f2)
+            MODULE_NAME=$(echo "$MODULE_PATH" | cut -d'/' -f3)
+            VERSION=$(grep -oP "br/public:avm/res/[^:]+:\K[0-9]+\.[0-9]+\.[0-9]+" "$MODULE_PATH" | head -1)
+            ACR_REPO="bicep/${CATEGORY}/${MODULE_NAME}"
+            
+            # Check if version exists in ACR
+            if az acr repository show-tags \
+                --name "$ACR_NAME" \
+                --repository "$ACR_REPO" \
+                --output tsv 2>/dev/null | grep -q "^${VERSION}$"; then
+              
+              # Check if it was just published (workflow succeeded) or already existed
+              if [[ "${{ needs.publish-modules.result }}" == "success" ]]; then
+                STATUS="✅ Published"
+              else
+                STATUS="⏭️ Exists"
+              fi
+            else
+              # Version doesn't exist - check if publish failed
+              if [[ "${{ needs.publish-modules.result }}" == "failure" ]]; then
+                STATUS="❌ Failed"
+              else
+                STATUS="⏭️ Skipped"
+              fi
+            fi
+            
+            echo "| \`${CATEGORY}\` | \`${MODULE_NAME}\` | \`${VERSION}\` | \`${ACR_REPO}\` | ${STATUS} |" >> $GITHUB_STEP_SUMMARY
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Legend" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Published**: Successfully published to ACR in this run" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏭️ **Exists**: Version already exists in ACR (skipped)" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏭️ **Skipped**: Module was not published (e.g., version check prevented publish)" >> $GITHUB_STEP_SUMMARY
+          echo "- ❌ **Failed**: Publish operation failed" >> $GITHUB_STEP_SUMMARY
