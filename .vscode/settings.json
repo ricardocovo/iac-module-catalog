@@ -1,6 +1,8 @@
 {
     "chat.tools.terminal.autoApprove": {
         "read": true,
-        "copilot": true
+        "copilot": true,
+        "git worktree": true,
+        "nohup": true
     }
 }
