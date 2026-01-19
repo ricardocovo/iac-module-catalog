@@ -3,12 +3,14 @@ targetScope = 'resourceGroup'
 
 param location string = 'eastus'
 param environment string = 'dev'
+param virtualNetworkResourceId string
 
 module dnsresolver '../main.bicep' = {
   name: 'dns-resolver-basic'
   params: {
     name: 'dns-resolver-${environment}-${uniqueString(resourceGroup().id)}'
     location: location
+    virtualNetworkResourceId: virtualNetworkResourceId
     tags: {
       environment: environment
       deploymentType: 'basic'

@@ -3,12 +3,14 @@ targetScope = 'resourceGroup'
 
 param location string = 'eastus'
 param environment string = 'prod'
+param addressPrefixes array
 
 module virtualnetwork '../main.bicep' = {
   name: 'virtual-network-prod'
   params: {
     name: 'virtual-network-${environment}-${uniqueString(resourceGroup().id)}'
     location: location
+    addressPrefixes: addressPrefixes
     tags: {
       environment: environment
       deploymentType: 'production'

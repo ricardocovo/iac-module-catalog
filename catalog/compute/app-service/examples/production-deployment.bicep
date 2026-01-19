@@ -3,12 +3,14 @@ targetScope = 'resourceGroup'
 
 param location string = 'eastus'
 param environment string = 'prod'
+param serverFarmResourceId string
 
 module appservice '../main.bicep' = {
   name: 'app-service-prod'
   params: {
     name: 'app-service-${environment}-${uniqueString(resourceGroup().id)}'
     location: location
+    serverFarmResourceId: serverFarmResourceId
     tags: {
       environment: environment
       deploymentType: 'production'

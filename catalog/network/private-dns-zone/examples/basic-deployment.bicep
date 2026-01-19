@@ -1,14 +1,12 @@
 // Basic deployment of Private DNS Zone
 targetScope = 'resourceGroup'
 
-param location string = 'eastus'
 param environment string = 'dev'
 
 module privatednszone '../main.bicep' = {
   name: 'private-dns-zone-basic'
   params: {
-    name: 'private-dns-zone-${environment}-${uniqueString(resourceGroup().id)}'
-    location: location
+    name: 'private${environment}.local'
     tags: {
       environment: environment
       deploymentType: 'basic'

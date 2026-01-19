@@ -3,12 +3,18 @@ targetScope = 'resourceGroup'
 
 param location string = 'eastus'
 param environment string = 'dev'
+param storageAccountResourceId string
+param keyVaultResourceId string
+param applicationInsightsResourceId string
 
 module machinelearningworkspace '../main.bicep' = {
   name: 'machine-learning-workspace-basic'
   params: {
     name: 'machine-learning-workspace-${environment}-${uniqueString(resourceGroup().id)}'
     location: location
+    storageAccountResourceId: storageAccountResourceId
+    keyVaultResourceId: keyVaultResourceId
+    applicationInsightsResourceId: applicationInsightsResourceId
     tags: {
       environment: environment
       deploymentType: 'basic'

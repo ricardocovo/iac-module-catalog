@@ -3,12 +3,16 @@ targetScope = 'resourceGroup'
 
 param location string = 'eastus'
 param environment string = 'prod'
+param virtualNetworkName string
+param publicIPAddressObject object
 
 module azurefirewall '../main.bicep' = {
   name: 'azure-firewall-prod'
   params: {
     name: 'azure-firewall-${environment}-${uniqueString(resourceGroup().id)}'
     location: location
+    virtualNetworkName: virtualNetworkName
+    publicIPAddressObject: publicIPAddressObject
     tags: {
       environment: environment
       deploymentType: 'production'

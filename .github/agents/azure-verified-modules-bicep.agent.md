@@ -53,7 +53,8 @@ When writing modules, follow this guidelines:
 - Follow categories described on best practices
 - Each modules should be on its own folder
   - Module file will be named `main.bicep`
-  - Include `README.md` with documentation of module and description of the  examples
+  - Include `README.md` with documentation of module and description of the  examples.
+  - The `README.md` should have a table describing the parameters and outputs of the module.
 
 Example:
 ```

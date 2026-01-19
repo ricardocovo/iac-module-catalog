@@ -1,14 +1,12 @@
 // Production deployment of Private DNS Zone
 targetScope = 'resourceGroup'
 
-param location string = 'eastus'
 param environment string = 'prod'
 
 module privatednszone '../main.bicep' = {
   name: 'private-dns-zone-prod'
   params: {
-    name: 'private-dns-zone-${environment}-${uniqueString(resourceGroup().id)}'
-    location: location
+    name: 'private${environment}.internal'
     tags: {
       environment: environment
       deploymentType: 'production'

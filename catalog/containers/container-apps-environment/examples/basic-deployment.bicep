@@ -3,12 +3,14 @@ targetScope = 'resourceGroup'
 
 param location string = 'eastus'
 param environment string = 'dev'
+param workspaceResourceId string
 
-module containerappsenvironment '../main.bicep' = {
+module containerappsenv '../main.bicep' = {
   name: 'container-apps-environment-basic'
   params: {
     name: 'container-apps-environment-${environment}-${uniqueString(resourceGroup().id)}'
     location: location
+    workspaceResourceId: workspaceResourceId
     tags: {
       environment: environment
       deploymentType: 'basic'
@@ -16,5 +18,5 @@ module containerappsenvironment '../main.bicep' = {
   }
 }
 
-output resourceId string = containerappsenvironment.outputs.resourceId
-output name string = containerappsenvironment.outputs.name
+output resourceId string = containerappsenv.outputs.resourceId
+output name string = containerappsenv.outputs.name

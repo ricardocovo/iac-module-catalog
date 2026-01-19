@@ -3,12 +3,16 @@ targetScope = 'resourceGroup'
 
 param location string = 'eastus'
 param environment string = 'prod'
+param workspaceResourceId string
 
 module applicationinsights '../main.bicep' = {
   name: 'application-insights-prod'
   params: {
     name: 'application-insights-${environment}-${uniqueString(resourceGroup().id)}'
     location: location
+    workspaceResourceId: workspaceResourceId
+    publicNetworkAccessForIngestion: 'Disabled'
+    publicNetworkAccessForQuery: 'Disabled'
     tags: {
       environment: environment
       deploymentType: 'production'
