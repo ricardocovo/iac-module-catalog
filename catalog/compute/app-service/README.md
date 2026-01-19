@@ -11,7 +11,18 @@ This module deploys an Azure App Service (Web App) using Azure Verified Modules 
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the app service |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `serverFarmResourceId` | string | Required | App Service Plan resource ID |
+| `kind` | string | `'app'` | Kind of site |
+| `siteConfig` | object | `{}` | Site configuration settings |
+| `appSettingsKeyValuePairs` | object | `{}` | App settings key-value pairs |
+| `virtualNetworkSubnetId` | string | `''` | Virtual network subnet ID for VNet integration |
+| `privateEndpoints` | array | `[]` | Array of private endpoint configurations |
+| `managedIdentities` | object | `{}` | Managed identity configuration |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

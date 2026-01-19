@@ -11,7 +11,18 @@ This module deploys an Azure Container Apps Environment using Azure Verified Mod
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the container apps environment |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `workspaceResourceId` | string | Required | Log Analytics workspace resource ID |
+| `zoneRedundant` | bool | `false` | Enable zone redundancy for high availability |
+| `internalLoadBalancerEnabled` | bool | `false` | Enable internal load balancer |
+| `infrastructureSubnetId` | string | `''` | Virtual network subnet resource ID (optional) |
+| `dockerBridgeCidr` | string | `''` | Docker bridge CIDR (required for VNet integration) |
+| `platformReservedCidr` | string | `''` | Platform reserved CIDR (required for VNet integration) |
+| `platformReservedDnsIP` | string | `''` | Platform reserved DNS IP (required for VNet integration) |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

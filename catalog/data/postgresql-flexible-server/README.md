@@ -11,7 +11,23 @@ This module deploys an Azure PostgreSQL Flexible Server using Azure Verified Mod
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the PostgreSQL server |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `skuName` | string | `'Standard_D2ds_v4'` | SKU name for compute tier |
+| `storageSizeGB` | int | `32` | Storage size in GB |
+| `version` | string | `'16'` | PostgreSQL version. Allowed values: 11, 12, 13, 14, 15, 16 |
+| `administratorLogin` | string | Required | Administrator login username |
+| `administratorLoginPassword` | string | Required | Administrator password (secure parameter) |
+| `highAvailability` | string | `'Disabled'` | High availability mode. Allowed values: Disabled, ZoneRedundant, SameZone |
+| `backupRetentionDays` | int | `7` | Backup retention period in days |
+| `geoRedundantBackup` | bool | `false` | Enable geo-redundant backup |
+| `delegatedSubnetResourceId` | string | `''` | Delegated subnet resource ID for VNet integration |
+| `privateDnsZoneResourceId` | string | `''` | Private DNS zone resource ID |
+| `firewallRules` | array | `[]` | Array of firewall rule configurations |
+| `databases` | array | `[]` | Array of database configurations |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

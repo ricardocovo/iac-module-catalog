@@ -11,7 +11,14 @@ This module deploys an Azure App Service Plan using Azure Verified Modules (AVM)
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the app service plan |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `skuName` | string | `'P1v3'` | SKU name for the service plan |
+| `skuCapacity` | int | `1` | SKU capacity (number of instances) |
+| `kind` | string | `'Linux'` | Kind of resource. Allowed values: Windows, Linux, FunctionApp |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

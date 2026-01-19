@@ -11,7 +11,15 @@ This module deploys an Azure Application Insights using Azure Verified Modules (
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the Application Insights component |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `applicationType` | string | `'web'` | Application type. Allowed values: web, other |
+| `workspaceResourceId` | string | Required | Log Analytics workspace resource ID |
+| `publicNetworkAccessForIngestion` | string | `'Enabled'` | Public network access for ingestion. Allowed values: Enabled, Disabled |
+| `publicNetworkAccessForQuery` | string | `'Enabled'` | Public network access for query. Allowed values: Enabled, Disabled |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

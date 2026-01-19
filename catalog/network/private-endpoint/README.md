@@ -11,7 +11,15 @@ This module deploys an Azure Private Endpoint using Azure Verified Modules (AVM)
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the private endpoint |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `subnetResourceId` | string | Required | Subnet resource ID where the private endpoint will be created |
+| `serviceResourceId` | string | Required | Service resource ID to connect to (e.g., storage account, key vault) |
+| `groupIds` | array | Required | Group IDs for the private endpoint connection (e.g., ['blob'], ['vault']) |
+| `privateDnsZoneConfigs` | array | `[]` | Array of private DNS zone configurations |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

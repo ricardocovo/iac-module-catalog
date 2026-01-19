@@ -11,7 +11,14 @@ This module deploys an Azure VPN Gateway using Azure Verified Modules (AVM).
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the VPN gateway |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `virtualHubResourceId` | string | Required | Virtual Hub resource ID for the VPN gateway |
+| `bgpSettings` | object | `{}` | BGP settings configuration |
+| `vpnConnections` | array | `[]` | Array of VPN connection configurations |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

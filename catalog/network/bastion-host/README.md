@@ -11,7 +11,13 @@ This module deploys an Azure Azure Bastion using Azure Verified Modules (AVM).
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the Azure Bastion |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `virtualNetworkName` | string | Required | Virtual network name for bastion subnet (AzureBastionSubnet) |
+| `skuName` | string | `'Basic'` | SKU name. Allowed values: Basic, Standard |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

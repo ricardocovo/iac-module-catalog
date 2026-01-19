@@ -11,7 +11,14 @@ This module deploys an Azure DNS Resolver using Azure Verified Modules (AVM).
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the DNS resolver |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `virtualNetworkResourceId` | string | Required | Virtual network resource ID for DNS resolver |
+| `inboundEndpoints` | array | `[]` | Array of inbound endpoint configurations |
+| `outboundEndpoints` | array | `[]` | Array of outbound endpoint configurations |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

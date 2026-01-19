@@ -11,7 +11,19 @@ This module deploys an Azure Azure Cache for Redis using Azure Verified Modules 
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the Redis cache |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `skuName` | string | `'Premium'` | SKU name. Allowed values: Basic, Standard, Premium |
+| `skuCapacity` | int | `1` | SKU capacity (cache size) |
+| `enableNonSslPort` | bool | `false` | Enable non-SSL port 6379 |
+| `minimumTlsVersion` | string | `'1.2'` | Minimum TLS version. Allowed values: 1.0, 1.1, 1.2 |
+| `publicNetworkAccess` | string | `'Disabled'` | Public network access. Allowed values: Enabled, Disabled |
+| `redisConfiguration` | object | `{}` | Redis-specific configuration settings |
+| `privateEndpoints` | array | `[]` | Array of private endpoint configurations |
+| `zones` | array | `[]` | Availability zones for zone redundancy |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

@@ -11,7 +11,20 @@ This module deploys an Azure SQL Server using Azure Verified Modules (AVM).
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the SQL server |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `administratorLogin` | string | Required | Administrator login username |
+| `administratorLoginPassword` | string | Required | Administrator password (secure parameter) |
+| `administrators` | object | `{}` | Azure AD administrator configuration |
+| `minimalTlsVersion` | string | `'1.2'` | Minimum TLS version. Allowed values: 1.0, 1.1, 1.2 |
+| `publicNetworkAccess` | string | `'Disabled'` | Public network access. Allowed values: Enabled, Disabled |
+| `firewallRules` | array | `[]` | Array of firewall rule configurations |
+| `privateEndpoints` | array | `[]` | Array of private endpoint configurations |
+| `databases` | array | `[]` | Array of database configurations |
+| `managedIdentities` | object | `{}` | Managed identity configuration |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

@@ -11,7 +11,14 @@ This module deploys an Azure Azure Firewall using Azure Verified Modules (AVM).
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the Azure Firewall |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `skuTier` | string | `'Standard'` | Firewall SKU tier. Allowed values: Standard, Premium |
+| `virtualNetworkName` | string | Required | Virtual network name for firewall subnet (AzureFirewallSubnet) |
+| `publicIPAddressObject` | object | Required | Public IP address configuration |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

@@ -11,7 +11,17 @@ This module deploys an Azure Azure AI Search Service using Azure Verified Module
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the search service |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `skuName` | string | `'standard'` | SKU name. Allowed values: free, basic, standard, standard2, standard3, storage_optimized_l1, storage_optimized_l2 |
+| `replicaCount` | int | `1` | Number of replicas for high availability |
+| `partitionCount` | int | `1` | Number of partitions for scaling |
+| `publicNetworkAccess` | string | `'Disabled'` | Public network access. Allowed values: Enabled, Disabled |
+| `privateEndpoints` | array | `[]` | Array of private endpoint configurations |
+| `managedIdentities` | object | `{}` | Managed identity configuration |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

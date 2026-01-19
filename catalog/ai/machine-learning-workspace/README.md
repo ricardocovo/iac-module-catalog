@@ -11,7 +11,19 @@ This module deploys an Azure Machine Learning Workspace using Azure Verified Mod
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the ML workspace |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `skuName` | string | `'Basic'` | SKU name. Allowed values: Basic, Free, Premium, Standard |
+| `storageAccountResourceId` | string | Required | Storage account resource ID |
+| `keyVaultResourceId` | string | Required | Key vault resource ID |
+| `applicationInsightsResourceId` | string | Required | Application Insights resource ID |
+| `containerRegistryResourceId` | string | `''` | Container registry resource ID (optional) |
+| `publicNetworkAccess` | string | `'Disabled'` | Public network access. Allowed values: Enabled, Disabled |
+| `privateEndpoints` | array | `[]` | Array of private endpoint configurations |
+| `managedIdentities` | object | `{}` | Managed identity configuration |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

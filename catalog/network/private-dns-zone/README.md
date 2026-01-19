@@ -11,7 +11,11 @@ This module deploys an Azure Private DNS Zone using Azure Verified Modules (AVM)
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the private DNS zone (e.g., privatelink.blob.core.windows.net) |
+| `virtualNetworkLinks` | array | `[]` | Array of virtual network link configurations |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

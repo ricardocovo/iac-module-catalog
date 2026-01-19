@@ -11,7 +11,19 @@ This module deploys an Azure Container Registry using Azure Verified Modules (AV
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the container registry |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `skuName` | string | `'Premium'` | SKU name. Allowed values: Basic, Standard, Premium |
+| `adminUserEnabled` | bool | `false` | Enable admin user for registry |
+| `publicNetworkAccess` | string | `'Disabled'` | Public network access. Allowed values: Enabled, Disabled |
+| `networkRuleSetDefaultAction` | string | `'Deny'` | Network rule set default action. Allowed values: Allow, Deny |
+| `networkRuleBypassOptions` | string | `'AzureServices'` | Network rule bypass options. Allowed values: None, AzureServices |
+| `privateEndpoints` | array | `[]` | Array of private endpoint configurations |
+| `zoneRedundancy` | string | `'Disabled'` | Zone redundancy. Allowed values: Enabled, Disabled |
+| `managedIdentities` | object | `{}` | Managed identity configuration |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

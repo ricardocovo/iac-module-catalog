@@ -11,7 +11,21 @@ This module deploys an Azure Service Bus Namespace using Azure Verified Modules 
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the Service Bus namespace |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `skuName` | string | `'Premium'` | SKU name. Allowed values: Basic, Standard, Premium |
+| `capacity` | int | `1` | SKU capacity (Premium tier only, 1-16 messaging units) |
+| `zoneRedundant` | bool | `true` | Enable zone redundancy for high availability |
+| `minimumTlsVersion` | string | `'1.2'` | Minimum TLS version. Allowed values: 1.0, 1.1, 1.2 |
+| `publicNetworkAccess` | string | `'Disabled'` | Public network access. Allowed values: Enabled, Disabled |
+| `disableLocalAuth` | bool | `true` | Disable local authentication (use Azure AD only) |
+| `privateEndpoints` | array | `[]` | Array of private endpoint configurations |
+| `queues` | array | `[]` | Array of queue configurations |
+| `topics` | array | `[]` | Array of topic configurations |
+| `managedIdentities` | object | `{}` | Managed identity configuration |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

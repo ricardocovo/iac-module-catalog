@@ -11,7 +11,12 @@ This module deploys an Azure Network Security Group using Azure Verified Modules
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the network security group |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `securityRules` | array | `[]` | Array of security rule configurations |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

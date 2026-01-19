@@ -11,7 +11,15 @@ This module deploys an Azure Virtual Network using Azure Verified Modules (AVM).
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the virtual network |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `addressPrefixes` | array | Required | Array of address prefixes for the virtual network (e.g., ['10.0.0.0/16']) |
+| `subnets` | array | `[]` | Array of subnet configurations |
+| `dnsServers` | array | `[]` | Array of custom DNS server IPs |
+| `ddosProtectionPlanResourceId` | string | `''` | DDoS protection plan resource ID (optional) |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

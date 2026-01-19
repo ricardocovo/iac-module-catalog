@@ -11,7 +11,19 @@ This module deploys an Azure Cosmos DB Account using Azure Verified Modules (AVM
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the Cosmos DB account |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `defaultConsistencyLevel` | string | `'Session'` | Default consistency level. Allowed values: Eventual, ConsistentPrefix, Session, BoundedStaleness, Strong |
+| `automaticFailover` | bool | `true` | Enable automatic failover for high availability |
+| `enableMultipleWriteLocations` | bool | `false` | Enable multiple write locations (multi-region writes) |
+| `locations` | array | `[]` | Array of location configurations for geo-replication |
+| `networkRestrictions` | object | `{ publicNetworkAccess: 'Disabled', networkAclBypass: 'AzureServices' }` | Network restrictions configuration |
+| `privateEndpoints` | array | `[]` | Array of private endpoint configurations |
+| `sqlDatabases` | array | `[]` | Array of SQL database configurations |
+| `managedIdentities` | object | `{}` | Managed identity configuration |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

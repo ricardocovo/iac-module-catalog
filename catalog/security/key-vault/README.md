@@ -11,7 +11,17 @@ This module deploys an Azure Key Vault using Azure Verified Modules (AVM).
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the key vault |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `skuName` | string | `'standard'` | SKU name. Allowed values: standard, premium |
+| `enableRbacAuthorization` | bool | `true` | Enable RBAC authorization (recommended over access policies) |
+| `enablePurgeProtection` | bool | `true` | Enable purge protection to prevent permanent deletion |
+| `publicNetworkAccess` | string | `'Disabled'` | Public network access. Allowed values: Enabled, Disabled |
+| `networkAcls` | object | `{}` | Network ACL configuration |
+| `privateEndpoints` | array | `[]` | Array of private endpoint configurations |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

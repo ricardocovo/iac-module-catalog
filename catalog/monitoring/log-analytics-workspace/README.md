@@ -11,7 +11,16 @@ This module deploys an Azure Log Analytics Workspace using Azure Verified Module
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the Log Analytics workspace |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `skuName` | string | `'PerGB2018'` | SKU name. Allowed values: Free, PerGB2018, PerNode, Premium, Standalone, Standard |
+| `dataRetention` | int | `30` | Data retention period in days (30-730) |
+| `dailyQuotaGb` | int | `-1` | Daily ingestion quota in GB (-1 for unlimited) |
+| `publicNetworkAccessForIngestion` | string | `'Enabled'` | Public network access for ingestion. Allowed values: Enabled, Disabled |
+| `publicNetworkAccessForQuery` | string | `'Enabled'` | Public network access for query. Allowed values: Enabled, Disabled |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 

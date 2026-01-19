@@ -11,7 +11,17 @@ This module deploys an Azure Container App using Azure Verified Modules (AVM).
 
 ## Parameters
 
-See [main.bicep](main.bicep) for the complete list of parameters and their descriptions.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | Required | The name of the container app |
+| `location` | string | `resourceGroup().location` | The Azure region for deployment |
+| `environmentResourceId` | string | Required | Container Apps environment resource ID |
+| `containers` | array | Required | Array of container configurations |
+| `ingressConfiguration` | object | `{}` | Ingress configuration (external, targetPort, transport) |
+| `scaleConfiguration` | object | `{}` | Scale configuration (minReplicas, maxReplicas, rules) |
+| `secretsConfiguration` | object | `{}` | Secrets configuration object (secure parameter) |
+| `managedIdentities` | object | `{}` | Managed identity configuration |
+| `tags` | object | `{}` | Resource tags |
 
 ## Outputs
 
