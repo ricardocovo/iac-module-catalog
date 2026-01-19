@@ -1,11 +1,11 @@
 name: Publish Bicep Modules to ACR
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'catalog/**/main.bicep'
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'catalog/**/main.bicep'
   workflow_dispatch:
     inputs:
       force_publish:
