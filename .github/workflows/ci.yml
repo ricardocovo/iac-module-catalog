@@ -40,12 +40,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Azure CLI
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-        continue-on-error: true # Allow workflow to continue even if Azure login fails
-
       - name: Install Bicep CLI
         run: |
           set -euo pipefail
