@@ -15,6 +15,7 @@ on:
       - 'catalog/**/*.bicep'
       - 'catalog/**/*.bicepparam'
       - '.github/workflows/ci.yml'
+  workflow_dispatch:
 
 # Security: Default to read-only permissions
 permissions:
