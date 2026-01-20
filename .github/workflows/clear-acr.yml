@@ -141,6 +141,9 @@ jobs:
           FAILED_COUNT=0
           TOTAL_REPOS=$(wc -l < /tmp/repos-to-delete.txt)
           CURRENT=0
+
+          
+          echo "⚠️  TOTOAL REPOS: $TOTAL_REPOS"
           
           while IFS= read -r repo; do
             if [[ -z "$repo" ]]; then
@@ -150,21 +153,24 @@ jobs:
             ((CURRENT++))
             echo "[$CURRENT/$TOTAL_REPOS] 🗑️  Deleting: $repo"
             
-            # Use timeout and explicit output handling to prevent hanging
-            if timeout 180 az acr repository delete \
+            # Delete repository and capture exit code
+            set +e
+            timeout 180 az acr repository delete \
                 --name "$ACR_NAME" \
                 --repository "$repo" \
                 --yes \
-                --output none 2>&1 | grep -v "^$" || true; then
+                --output none 2>&1
+            EXIT_CODE=$?
+            set -e
+            
+            if [[ $EXIT_CODE -eq 0 ]]; then
               echo "✅ Deleted: $repo"
               ((DELETED_COUNT++))
+            elif [[ $EXIT_CODE -eq 124 ]]; then
+              echo "⏱️  Timeout deleting: $repo (exceeded 180s)"
+              ((FAILED_COUNT++))
             else
-              EXIT_CODE=${PIPESTATUS[0]}
-              if [[ $EXIT_CODE -eq 124 ]]; then
-                echo "⏱️  Timeout deleting: $repo (exceeded 180s)"
-              else
-                echo "❌ Failed to delete: $repo (exit code: $EXIT_CODE)"
-              fi
+              echo "❌ Failed to delete: $repo (exit code: $EXIT_CODE)"
               ((FAILED_COUNT++))
             fi
             
