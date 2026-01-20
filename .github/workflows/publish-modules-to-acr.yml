@@ -230,7 +230,7 @@ jobs:
             --image "${ACR_REPO}:v${MAJOR_VERSION}" \
             --force || echo "Could not tag major version"
 
-      - name: Summary
+      - name: Save status for summary
         if: always()
         run: |
           # Determine the actual status for this module
@@ -247,32 +247,6 @@ jobs:
           cat > /tmp/module-status/${{ steps.metadata.outputs.category }}-${{ steps.metadata.outputs.module-name }}.txt << EOF
           ${{ steps.metadata.outputs.module-path }}|${{ steps.metadata.outputs.category }}|${{ steps.metadata.outputs.module-name }}|${{ steps.metadata.outputs.version }}|${{ steps.metadata.outputs.acr-repo }}|${ACTUAL_STATUS}
           EOF
-          
-          echo "### 📦 Module Publish Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Module:** \`${{ steps.metadata.outputs.module-name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Category:** \`${{ steps.metadata.outputs.category }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** \`${{ steps.metadata.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**ACR Repository:** \`${{ steps.metadata.outputs.acr-repo }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [[ "${{ steps.check-version.outputs.should-publish }}" == "true" ]]; then
-            echo "✅ **Status:** Published successfully" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Usage:**" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`bicep" >> $GITHUB_STEP_SUMMARY
-            echo "module example 'br:${{ secrets.ACR_NAME }}.azurecr.io/${{ steps.metadata.outputs.acr-repo }}:${{ steps.metadata.outputs.version }}' = {" >> $GITHUB_STEP_SUMMARY
-            echo "  name: 'example-deployment'" >> $GITHUB_STEP_SUMMARY
-            echo "  params: {" >> $GITHUB_STEP_SUMMARY
-            echo "    // Add parameters here" >> $GITHUB_STEP_SUMMARY
-            echo "  }" >> $GITHUB_STEP_SUMMARY
-            echo "}" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ steps.check-version.outputs.exists }}" == "true" ]]; then
-            echo "⏭️ **Status:** Skipped (version already exists)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **Status:** Failed" >> $GITHUB_STEP_SUMMARY
-          fi
 
       - name: Upload status artifact
         if: always()
