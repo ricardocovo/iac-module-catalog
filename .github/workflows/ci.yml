@@ -1,0 +1,235 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'catalog/**/*.bicep'
+      - 'catalog/**/*.bicepparam'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'catalog/**/*.bicep'
+      - 'catalog/**/*.bicepparam'
+      - '.github/workflows/ci.yml'
+
+# Security: Default to read-only permissions
+permissions:
+  contents: read
+  pull-requests: read
+
+# Cancel outdated PR builds
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BICEP_VERSION: '0.24.24'
+
+jobs:
+  lint-and-build:
+    name: Lint and Build Bicep Modules
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Azure CLI
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+        continue-on-error: true # Allow workflow to continue even if Azure login fails
+
+      - name: Install Bicep CLI
+        run: |
+          set -euo pipefail
+          
+          echo "Installing Bicep CLI version ${{ env.BICEP_VERSION }}"
+          
+          # Install specific version of Bicep
+          curl -Lo bicep https://github.com/Azure/bicep/releases/download/v${{ env.BICEP_VERSION }}/bicep-linux-x64
+          chmod +x ./bicep
+          sudo mv ./bicep /usr/local/bin/bicep
+          
+          # Verify installation
+          bicep --version
+
+      - name: Find all main.bicep modules
+        id: find-modules
+        run: |
+          set -euo pipefail
+          
+          echo "Discovering all main.bicep modules in catalog/"
+          
+          # Find all main.bicep files
+          modules=$(find catalog -type f -name "main.bicep" | sort)
+          
+          if [[ -z "$modules" ]]; then
+            echo "❌ No main.bicep modules found"
+            exit 1
+          fi
+          
+          module_count=$(echo "$modules" | wc -l)
+          echo "✅ Found $module_count modules to validate"
+          echo "$modules"
+          
+          # Save for next step
+          echo "$modules" > /tmp/modules.txt
+
+      - name: Lint Bicep modules
+        run: |
+          set -euo pipefail
+          
+          echo "🔍 Linting all Bicep modules..."
+          
+          failed_modules=()
+          passed_count=0
+          failed_count=0
+          
+          while IFS= read -r module; do
+            echo ""
+            echo "Linting: $module"
+            
+            if bicep lint "$module" --diagnostics-format sarif > /dev/null 2>&1; then
+              echo "  ✅ Passed"
+              ((passed_count++))
+            else
+              echo "  ❌ Failed"
+              failed_modules+=("$module")
+              ((failed_count++))
+              
+              # Show detailed error
+              bicep lint "$module" || true
+            fi
+          done < /tmp/modules.txt
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Lint Summary:"
+          echo "  ✅ Passed: $passed_count"
+          echo "  ❌ Failed: $failed_count"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          if [[ ${#failed_modules[@]} -gt 0 ]]; then
+            echo ""
+            echo "Failed modules:"
+            printf '  - %s\n' "${failed_modules[@]}"
+            exit 1
+          fi
+
+      - name: Build Bicep modules
+        run: |
+          set -euo pipefail
+          
+          echo "🔨 Building all Bicep modules..."
+          
+          failed_modules=()
+          passed_count=0
+          failed_count=0
+          
+          while IFS= read -r module; do
+            echo ""
+            echo "Building: $module"
+            
+            module_dir=$(dirname "$module")
+            output_file="$module_dir/main.json"
+            
+            if bicep build "$module" --outfile "$output_file"; then
+              echo "  ✅ Built successfully"
+              ((passed_count++))
+              
+              # Verify output exists
+              if [[ ! -f "$output_file" ]]; then
+                echo "  ⚠️  Warning: Output file not created"
+              fi
+            else
+              echo "  ❌ Build failed"
+              failed_modules+=("$module")
+              ((failed_count++))
+            fi
+          done < /tmp/modules.txt
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Build Summary:"
+          echo "  ✅ Passed: $passed_count"
+          echo "  ❌ Failed: $failed_count"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          if [[ ${#failed_modules[@]} -gt 0 ]]; then
+            echo ""
+            echo "Failed modules:"
+            printf '  - %s\n' "${failed_modules[@]}"
+            exit 1
+          fi
+
+      - name: Validate example files
+        run: |
+          set -euo pipefail
+          
+          echo "🔍 Validating example Bicep files..."
+          
+          # Find all example bicep files
+          examples=$(find catalog -type f -path "*/examples/*.bicep" | sort)
+          
+          if [[ -z "$examples" ]]; then
+            echo "ℹ️  No example files found, skipping validation"
+            exit 0
+          fi
+          
+          example_count=$(echo "$examples" | wc -l)
+          echo "Found $example_count example files to validate"
+          
+          failed_examples=()
+          passed_count=0
+          failed_count=0
+          
+          while IFS= read -r example; do
+            echo ""
+            echo "Validating: $example"
+            
+            if bicep build "$example" --stdout > /dev/null 2>&1; then
+              echo "  ✅ Valid"
+              ((passed_count++))
+            else
+              echo "  ❌ Invalid"
+              failed_examples+=("$example")
+              ((failed_count++))
+              
+              # Show detailed error
+              bicep build "$example" --stdout || true
+            fi
+          done <<< "$examples"
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Example Validation Summary:"
+          echo "  ✅ Passed: $passed_count"
+          echo "  ❌ Failed: $failed_count"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          if [[ ${#failed_examples[@]} -gt 0 ]]; then
+            echo ""
+            echo "Failed examples:"
+            printf '  - %s\n' "${failed_examples[@]}"
+            exit 1
+          fi
+
+  actionlint:
+    name: Lint GitHub Actions Workflows
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run actionlint
+        uses: docker://rhysd/actionlint:1.6.27
+        with:
+          args: -color
