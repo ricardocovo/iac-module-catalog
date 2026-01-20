@@ -13,6 +13,11 @@ on:
         required: false
         type: boolean
         default: false
+      cleanup_orphaned:
+        description: 'Remove modules from ACR that no longer exist in codebase'
+        required: false
+        type: boolean
+        default: false
 
 # Security: Default to read-only permissions
 permissions:
@@ -277,9 +282,172 @@ jobs:
           path: /tmp/module-status/
           retention-days: 1
 
+  cleanup-orphaned-modules:
+    name: Cleanup Orphaned Modules
+    needs: [detect-changed-modules, publish-modules]
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.cleanup_orphaned == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Discover codebase modules
+        id: codebase-modules
+        run: |
+          set -euo pipefail
+          
+          echo "Discovering modules in codebase..."
+          
+          # Build list of all module paths in codebase
+          # Format: category/module-name (e.g., ai/cognitive-services-account)
+          CODEBASE_MODULES=()
+          
+          while IFS= read -r module_path; do
+            # Extract category and module name from path
+            # Example: catalog/ai/cognitive-services-account/0.7.0/main.bicep -> ai/cognitive-services-account
+            CATEGORY=$(echo "$module_path" | cut -d'/' -f2)
+            MODULE_NAME=$(echo "$module_path" | cut -d'/' -f3)
+            MODULE_KEY="${CATEGORY}/${MODULE_NAME}"
+            
+            # Add to array if not already present
+            if [[ ! " ${CODEBASE_MODULES[*]} " =~ " ${MODULE_KEY} " ]]; then
+              CODEBASE_MODULES+=("$MODULE_KEY")
+            fi
+          done < <(find catalog -name "main.bicep" -type f)
+          
+          # Sort and output
+          printf '%s\n' "${CODEBASE_MODULES[@]}" | sort -u > /tmp/codebase-modules.txt
+          
+          echo "Found $(wc -l < /tmp/codebase-modules.txt) unique modules in codebase:"
+          cat /tmp/codebase-modules.txt
+
+      - name: Discover ACR modules
+        id: acr-modules
+        run: |
+          set -euo pipefail
+          
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          
+          echo "Discovering modules in ACR..."
+          
+          # List all repositories in ACR with bicep/ prefix
+          ACR_MODULES=()
+          
+          # Get all repositories
+          while IFS= read -r repo; do
+            # Remove 'bicep/' prefix to get category/module-name format
+            if [[ "$repo" == bicep/* ]]; then
+              MODULE_KEY="${repo#bicep/}"
+              ACR_MODULES+=("$MODULE_KEY")
+            fi
+          done < <(az acr repository list --name "$ACR_NAME" --output tsv 2>/dev/null | grep "^bicep/" || true)
+          
+          # Sort and output
+          printf '%s\n' "${ACR_MODULES[@]}" | sort -u > /tmp/acr-modules.txt
+          
+          echo "Found $(wc -l < /tmp/acr-modules.txt) unique modules in ACR:"
+          cat /tmp/acr-modules.txt
+
+      - name: Identify orphaned modules
+        id: orphaned-modules
+        run: |
+          set -euo pipefail
+          
+          echo "Identifying orphaned modules (in ACR but not in codebase)..."
+          
+          # Find modules in ACR that are NOT in codebase
+          comm -13 /tmp/codebase-modules.txt /tmp/acr-modules.txt > /tmp/orphaned-modules.txt
+          
+          ORPHANED_COUNT=$(wc -l < /tmp/orphaned-modules.txt)
+          
+          echo "orphaned-count=$ORPHANED_COUNT" >> $GITHUB_OUTPUT
+          
+          if [[ $ORPHANED_COUNT -gt 0 ]]; then
+            echo "Found $ORPHANED_COUNT orphaned module(s):"
+            cat /tmp/orphaned-modules.txt
+          else
+            echo "No orphaned modules found"
+          fi
+
+      - name: Remove orphaned modules
+        if: steps.orphaned-modules.outputs.orphaned-count > 0
+        run: |
+          set -euo pipefail
+          
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          
+          echo "Removing orphaned modules from ACR..."
+          echo ""
+          
+          REMOVED_COUNT=0
+          FAILED_COUNT=0
+          
+          while IFS= read -r module_key; do
+            if [[ -z "$module_key" ]]; then
+              continue
+            fi
+            
+            ACR_REPO="bicep/${module_key}"
+            
+            echo "🗑️  Removing: $ACR_REPO"
+            
+            if az acr repository delete \
+                --name "$ACR_NAME" \
+                --repository "$ACR_REPO" \
+                --yes 2>&1; then
+              echo "✅ Removed: $ACR_REPO"
+              ((REMOVED_COUNT++))
+            else
+              echo "❌ Failed to remove: $ACR_REPO"
+              ((FAILED_COUNT++))
+            fi
+            
+            echo ""
+          done < /tmp/orphaned-modules.txt
+          
+          echo "removed-count=$REMOVED_COUNT" >> $GITHUB_OUTPUT
+          echo "failed-count=$FAILED_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "Summary: Removed $REMOVED_COUNT, Failed $FAILED_COUNT"
+
+      - name: Cleanup summary
+        if: always()
+        run: |
+          echo "## 🧹 Orphaned Module Cleanup" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          ORPHANED_COUNT="${{ steps.orphaned-modules.outputs.orphaned-count }}"
+          
+          if [[ "$ORPHANED_COUNT" == "0" ]]; then
+            echo "✅ No orphaned modules found. ACR is in sync with codebase." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Orphaned modules found:** $ORPHANED_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            if [[ -f "/tmp/orphaned-modules.txt" ]]; then
+              echo "### Modules Removed from ACR" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Module Path | Status |" >> $GITHUB_STEP_SUMMARY
+              echo "|-------------|--------|" >> $GITHUB_STEP_SUMMARY
+              
+              while IFS= read -r module_key; do
+                if [[ -n "$module_key" ]]; then
+                  echo "| \`bicep/${module_key}\` | ✅ Removed |" >> $GITHUB_STEP_SUMMARY
+                fi
+              done < /tmp/orphaned-modules.txt
+            fi
+          fi
+
   summary:
     name: Publish Summary
-    needs: [detect-changed-modules, publish-modules]
+    needs: [detect-changed-modules, publish-modules, cleanup-orphaned-modules]
     if: always() && needs.detect-changed-modules.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -353,3 +521,18 @@ jobs:
           echo "- ✅ **Published**: Successfully published to ACR in this run" >> $GITHUB_STEP_SUMMARY
           echo "- ⏭️ **Exists**: Version already exists in ACR (skipped)" >> $GITHUB_STEP_SUMMARY
           echo "- ❌ **Failed**: Publish operation failed" >> $GITHUB_STEP_SUMMARY
+          
+          # Add cleanup summary if it ran
+          if [[ "${{ needs.cleanup-orphaned-modules.result }}" != "skipped" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "---" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 🧹 Cleanup Status" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            if [[ "${{ needs.cleanup-orphaned-modules.result }}" == "success" ]]; then
+              echo "✅ Orphaned module cleanup completed successfully" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ Orphaned module cleanup completed with warnings or errors" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
