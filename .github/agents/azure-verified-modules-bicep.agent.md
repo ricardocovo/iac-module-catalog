@@ -51,7 +51,8 @@ When writing modules, follow this guidelines:
 
 - Follow Azure AVM Bicep best practices
 - Follow categories described on best practices
-- Each modules should be on its own folder
+- Each module can have multiple versions
+- Each module version should be on its own folder
   - Module file will be named `main.bicep`
   - Include `README.md` with documentation of module and description of the  examples.
   - The `README.md` should have a table describing the parameters and outputs of the module.
@@ -61,9 +62,10 @@ Example:
 catalog/
   storage/
     storage-account/
-      examples/
-        example1.bicep
-        example2.bicep
-      main.bicep
-      README.md
+      0.14.0/
+        examples/
+          example1.bicep
+          example2.bicep
+        main.bicep
+        README.md
 ``` 
