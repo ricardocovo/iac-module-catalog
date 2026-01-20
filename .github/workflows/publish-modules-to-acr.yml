@@ -109,16 +109,20 @@ jobs:
           
           MODULE_PATH="${{ matrix.module-path }}"
           
-          # Extract category and module name from path
-          # Example: catalog/ai/cognitive-services-account/main.bicep
+          # Extract category, module name, and version from path
+          # Example: catalog/ai/cognitive-services-account/0.7.0/main.bicep
           CATEGORY=$(echo "$MODULE_PATH" | cut -d'/' -f2)
           MODULE_NAME=$(echo "$MODULE_PATH" | cut -d'/' -f3)
-          
-          # Extract version from the module reference
-          VERSION=$(grep -oP "br/public:avm/res/[^:]+:\K[0-9]+\.[0-9]+\.[0-9]+" "$MODULE_PATH" | head -1)
+          VERSION=$(echo "$MODULE_PATH" | cut -d'/' -f4)
           
           if [[ -z "$VERSION" ]]; then
             echo "ERROR: Could not extract version from $MODULE_PATH"
+            exit 1
+          fi
+          
+          # Validate version format (semantic versioning)
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Invalid version format: $VERSION (expected x.y.z)"
             exit 1
           fi
           
