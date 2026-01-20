@@ -128,6 +128,7 @@ jobs:
       - name: Delete repositories
         if: inputs.dry_run == false && steps.list-repos.outputs.repo-count > 0
         id: delete-repos
+        timeout-minutes: 30
         run: |
           set -euo pipefail
           
@@ -138,24 +139,37 @@ jobs:
           
           DELETED_COUNT=0
           FAILED_COUNT=0
+          TOTAL_REPOS=$(wc -l < /tmp/repos-to-delete.txt)
+          CURRENT=0
           
           while IFS= read -r repo; do
             if [[ -z "$repo" ]]; then
               continue
             fi
             
-            echo "🗑️  Deleting: $repo"
+            ((CURRENT++))
+            echo "[$CURRENT/$TOTAL_REPOS] 🗑️  Deleting: $repo"
             
-            if az acr repository delete \
+            # Use timeout and explicit output handling to prevent hanging
+            if timeout 180 az acr repository delete \
                 --name "$ACR_NAME" \
                 --repository "$repo" \
-                --yes 2>&1; then
+                --yes \
+                --output none 2>&1 | grep -v "^$" || true; then
               echo "✅ Deleted: $repo"
               ((DELETED_COUNT++))
             else
-              echo "❌ Failed to delete: $repo"
+              EXIT_CODE=${PIPESTATUS[0]}
+              if [[ $EXIT_CODE -eq 124 ]]; then
+                echo "⏱️  Timeout deleting: $repo (exceeded 180s)"
+              else
+                echo "❌ Failed to delete: $repo (exit code: $EXIT_CODE)"
+              fi
               ((FAILED_COUNT++))
             fi
+            
+            # Small delay to avoid rate limiting
+            sleep 1
             
             echo ""
           done < /tmp/repos-to-delete.txt
