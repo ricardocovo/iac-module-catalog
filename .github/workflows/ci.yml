@@ -111,12 +111,12 @@ jobs:
             if bicep lint "$module" --diagnostics-format sarif > /dev/null 2>&1; then
               echo "  ✅ Passed"
               echo "$module|✅ Pass" >> /tmp/results/lint_results.txt
-              ((passed_count++))
+              passed_count=$((passed_count + 1))
             else
               echo "  ❌ Failed"
               echo "$module|❌ Fail" >> /tmp/results/lint_results.txt
               failed_modules+=("$module")
-              ((failed_count++))
+              failed_count=$((failed_count + 1))
               
               # Show detailed error
               bicep lint "$module" || true
@@ -160,7 +160,7 @@ jobs:
             if bicep build "$module" --outfile "$output_file"; then
               echo "  ✅ Built successfully"
               echo "$module|✅ Pass" >> /tmp/results/build_results.txt
-              ((passed_count++))
+              passed_count=$((passed_count + 1))
               
               # Verify output exists
               if [[ ! -f "$output_file" ]]; then
@@ -170,7 +170,7 @@ jobs:
               echo "  ❌ Build failed"
               echo "$module|❌ Fail" >> /tmp/results/build_results.txt
               failed_modules+=("$module")
-              ((failed_count++))
+              failed_count=$((failed_count + 1))
             fi
           done < /tmp/modules.txt
           
@@ -254,11 +254,11 @@ jobs:
             
             if bicep build "$example" --stdout > /dev/null 2>&1; then
               echo "  ✅ Valid"
-              ((passed_count++))
+              passed_count=$((passed_count + 1))
             else
               echo "  ❌ Invalid"
               failed_examples+=("$example")
-              ((failed_count++))
+              failed_count=$((failed_count + 1))
               
               # Show detailed error
               bicep build "$example" --stdout || true
