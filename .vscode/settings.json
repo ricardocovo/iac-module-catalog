@@ -5,6 +5,8 @@
         "git worktree": true,
         "nohup": true,
         "tee": true,
-        "bicep": true
+        "bicep": true,
+        "git add": true,
+        "git commit": true
     }
 }
