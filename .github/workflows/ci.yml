@@ -100,15 +100,21 @@ jobs:
           passed_count=0
           failed_count=0
           
+          # Create results file
+          mkdir -p /tmp/results
+          echo "module|lint_status" > /tmp/results/lint_results.txt
+          
           while IFS= read -r module; do
             echo ""
             echo "Linting: $module"
             
             if bicep lint "$module" --diagnostics-format sarif > /dev/null 2>&1; then
               echo "  ✅ Passed"
+              echo "$module|✅ Pass" >> /tmp/results/lint_results.txt
               ((passed_count++))
             else
               echo "  ❌ Failed"
+              echo "$module|❌ Fail" >> /tmp/results/lint_results.txt
               failed_modules+=("$module")
               ((failed_count++))
               
@@ -141,6 +147,9 @@ jobs:
           passed_count=0
           failed_count=0
           
+          # Create results file
+          echo "module|build_status" > /tmp/results/build_results.txt
+          
           while IFS= read -r module; do
             echo ""
             echo "Building: $module"
@@ -150,6 +159,7 @@ jobs:
             
             if bicep build "$module" --outfile "$output_file"; then
               echo "  ✅ Built successfully"
+              echo "$module|✅ Pass" >> /tmp/results/build_results.txt
               ((passed_count++))
               
               # Verify output exists
@@ -158,6 +168,7 @@ jobs:
               fi
             else
               echo "  ❌ Build failed"
+              echo "$module|❌ Fail" >> /tmp/results/build_results.txt
               failed_modules+=("$module")
               ((failed_count++))
             fi
@@ -176,6 +187,45 @@ jobs:
             printf '  - %s\n' "${failed_modules[@]}"
             exit 1
           fi
+
+      - name: Publish Results Summary
+        if: always()
+        run: |
+          set -euo pipefail
+          
+          echo "📊 Generating CI Results Summary..."
+          
+          # Start the summary
+          {
+            echo "## 🔍 Bicep Module Validation Results"
+            echo ""
+            echo "| Module | Lint | Build |"
+            echo "|--------|------|-------|"
+            
+            # Merge results from both files
+            while IFS= read -r module; do
+              # Get lint result
+              lint_result=$(grep "^$module|" /tmp/results/lint_results.txt 2>/dev/null | cut -d'|' -f2 || echo "⚠️ Skipped")
+              
+              # Get build result
+              build_result=$(grep "^$module|" /tmp/results/build_results.txt 2>/dev/null | cut -d'|' -f2 || echo "⚠️ Skipped")
+              
+              # Format module path for display
+              module_display=$(echo "$module" | sed 's|catalog/||')
+              
+              echo "| \`$module_display\` | $lint_result | $build_result |"
+            done < /tmp/modules.txt
+            
+            echo ""
+            echo "---"
+            echo ""
+            echo "**Workflow:** \`${{ github.workflow }}\`  "
+            echo "**Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  "
+            echo "**Triggered by:** ${{ github.event_name }}  "
+            echo "**Commit:** [\`${GITHUB_SHA:0:7}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})  "
+          } >> "$GITHUB_STEP_SUMMARY"
+          
+          echo "✅ Summary published"
 
       - name: Validate example files
         run: |
