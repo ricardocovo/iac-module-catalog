@@ -142,15 +142,15 @@ jobs:
           TOTAL_REPOS=$(wc -l < /tmp/repos-to-delete.txt)
           CURRENT=0
 
-          
-          echo "⚠️  TOTOAL REPOS: $TOTAL_REPOS"
+          echo "⚠️  TOTAL REPOS: $TOTAL_REPOS"
           
           while IFS= read -r repo; do
             if [[ -z "$repo" ]]; then
               continue
             fi
             
-            ((CURRENT++))
+            # Use assignment form to avoid set -e issues with ((expr++)) when value is 0
+            CURRENT=$((CURRENT + 1))
             echo "[$CURRENT/$TOTAL_REPOS] 🗑️  Deleting: $repo"
             
             # Delete repository and capture exit code
@@ -165,13 +165,13 @@ jobs:
             
             if [[ $EXIT_CODE -eq 0 ]]; then
               echo "✅ Deleted: $repo"
-              ((DELETED_COUNT++))
+              DELETED_COUNT=$((DELETED_COUNT + 1))
             elif [[ $EXIT_CODE -eq 124 ]]; then
               echo "⏱️  Timeout deleting: $repo (exceeded 180s)"
-              ((FAILED_COUNT++))
+              FAILED_COUNT=$((FAILED_COUNT + 1))
             else
               echo "❌ Failed to delete: $repo (exit code: $EXIT_CODE)"
-              ((FAILED_COUNT++))
+              FAILED_COUNT=$((FAILED_COUNT + 1))
             fi
             
             # Small delay to avoid rate limiting
