@@ -116,7 +116,7 @@ jobs:
           while IFS= read -r repo; do
             if [[ -n "$repo" ]]; then
               TAG_COUNT=$(az acr repository show-tags --name "$ACR_NAME" --repository "$repo" --output tsv 2>/dev/null | wc -l)
-              TOTAL_TAGS=$((TOTAL_TAGS + TAG_COUNT))
+              TOTAL_TAGS=$((TOTAL_TAGS + ${TAG_COUNT:-0}))
               echo "  - $repo ($TAG_COUNT tags)"
             fi
           done < /tmp/repos-to-delete.txt
