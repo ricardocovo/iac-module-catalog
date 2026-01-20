@@ -1,0 +1,278 @@
+name: Clear ACR Repositories
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run - list repositories without deleting'
+        required: true
+        type: boolean
+        default: true
+      confirmation:
+        description: 'Type DELETE-ALL-REPOSITORIES to confirm deletion'
+        required: true
+        type: string
+      repository_pattern:
+        description: 'Optional: Only delete repositories matching this pattern (e.g., bicep/*)'
+        required: false
+        type: string
+        default: ''
+
+# Security: Default to read-only permissions
+permissions:
+  contents: read
+  id-token: write # Required for OIDC authentication to Azure
+
+# Prevent concurrent operations
+concurrency:
+  group: clear-acr
+  cancel-in-progress: false
+
+jobs:
+  validate-and-clear:
+    name: Validate and Clear ACR
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate confirmation
+        run: |
+          set -euo pipefail
+          
+          CONFIRMATION="${{ inputs.confirmation }}"
+          DRY_RUN="${{ inputs.dry_run }}"
+          
+          if [[ "$DRY_RUN" == "false" ]]; then
+            if [[ "$CONFIRMATION" != "DELETE-ALL-REPOSITORIES" ]]; then
+              echo "❌ ERROR: Confirmation text does not match."
+              echo "To perform deletion, you must type exactly: DELETE-ALL-REPOSITORIES"
+              exit 1
+            fi
+            echo "⚠️  WARNING: This will DELETE all repositories from ACR"
+            echo "Confirmation validated. Proceeding with deletion..."
+          else
+            echo "✅ Running in DRY RUN mode - no deletions will occur"
+          fi
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: List ACR repositories
+        id: list-repos
+        run: |
+          set -euo pipefail
+          
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          PATTERN="${{ inputs.repository_pattern }}"
+          
+          echo "Listing repositories in ACR: $ACR_NAME"
+          echo ""
+          
+          # Get all repositories
+          ALL_REPOS=$(az acr repository list --name "$ACR_NAME" --output tsv 2>/dev/null || echo "")
+          
+          if [[ -z "$ALL_REPOS" ]]; then
+            echo "No repositories found in ACR"
+            echo "repo-count=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Filter by pattern if provided
+          if [[ -n "$PATTERN" ]]; then
+            echo "Filtering repositories matching pattern: $PATTERN"
+            FILTERED_REPOS=$(echo "$ALL_REPOS" | grep -E "$PATTERN" || echo "")
+          else
+            FILTERED_REPOS="$ALL_REPOS"
+          fi
+          
+          if [[ -z "$FILTERED_REPOS" ]]; then
+            echo "No repositories match the filter"
+            echo "repo-count=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Save to file and count
+          echo "$FILTERED_REPOS" > /tmp/repos-to-delete.txt
+          REPO_COUNT=$(echo "$FILTERED_REPOS" | wc -l)
+          
+          echo "repo-count=$REPO_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "Found $REPO_COUNT repository/repositories to process:"
+          echo ""
+          cat /tmp/repos-to-delete.txt
+          
+          # Count tags for each repository
+          echo ""
+          echo "Repository details:"
+          echo ""
+          
+          TOTAL_TAGS=0
+          while IFS= read -r repo; do
+            if [[ -n "$repo" ]]; then
+              TAG_COUNT=$(az acr repository show-tags --name "$ACR_NAME" --repository "$repo" --output tsv 2>/dev/null | wc -l)
+              TOTAL_TAGS=$((TOTAL_TAGS + TAG_COUNT))
+              echo "  - $repo ($TAG_COUNT tags)"
+            fi
+          done < /tmp/repos-to-delete.txt
+          
+          echo ""
+          echo "total-tags=$TOTAL_TAGS" >> $GITHUB_OUTPUT
+          echo "Total: $REPO_COUNT repositories, $TOTAL_TAGS tags"
+
+      - name: Delete repositories
+        if: inputs.dry_run == false && steps.list-repos.outputs.repo-count > 0
+        id: delete-repos
+        run: |
+          set -euo pipefail
+          
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          
+          echo "⚠️  DELETING REPOSITORIES FROM ACR: $ACR_NAME"
+          echo ""
+          
+          DELETED_COUNT=0
+          FAILED_COUNT=0
+          
+          while IFS= read -r repo; do
+            if [[ -z "$repo" ]]; then
+              continue
+            fi
+            
+            echo "🗑️  Deleting: $repo"
+            
+            if az acr repository delete \
+                --name "$ACR_NAME" \
+                --repository "$repo" \
+                --yes 2>&1; then
+              echo "✅ Deleted: $repo"
+              ((DELETED_COUNT++))
+            else
+              echo "❌ Failed to delete: $repo"
+              ((FAILED_COUNT++))
+            fi
+            
+            echo ""
+          done < /tmp/repos-to-delete.txt
+          
+          echo "deleted-count=$DELETED_COUNT" >> $GITHUB_OUTPUT
+          echo "failed-count=$FAILED_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "Summary: Deleted $DELETED_COUNT, Failed $FAILED_COUNT"
+          
+          if [[ $FAILED_COUNT -gt 0 ]]; then
+            echo "⚠️  Some deletions failed. Check logs above."
+            exit 1
+          fi
+
+      - name: Generate summary
+        if: always()
+        run: |
+          set -euo pipefail
+          
+          echo "# 🗑️ ACR Clear Workflow" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow Run:** [\#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "**ACR Name:** \`${{ secrets.ACR_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Mode:** " >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            echo "🔍 **DRY RUN** (no deletions performed)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **LIVE RUN** (deletions executed)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          REPO_COUNT="${{ steps.list-repos.outputs.repo-count }}"
+          TOTAL_TAGS="${{ steps.list-repos.outputs.total-tags }}"
+          
+          if [[ "$REPO_COUNT" == "0" ]]; then
+            echo "✅ No repositories found or matched the filter." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 📊 Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **Repositories found:** $REPO_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "- **Total tags:** $TOTAL_TAGS" >> $GITHUB_STEP_SUMMARY
+            
+            if [[ -n "${{ inputs.repository_pattern }}" ]]; then
+              echo "- **Filter pattern:** \`${{ inputs.repository_pattern }}\`" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- **Filter pattern:** None (all repositories)" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            if [[ "${{ inputs.dry_run }}" == "false" ]]; then
+              DELETED="${{ steps.delete-repos.outputs.deleted-count }}"
+              FAILED="${{ steps.delete-repos.outputs.failed-count }}"
+              
+              echo "## 🗑️ Deletion Results" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "- ✅ **Successfully deleted:** $DELETED" >> $GITHUB_STEP_SUMMARY
+              echo "- ❌ **Failed to delete:** $FAILED" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              if [[ "$FAILED" == "0" ]]; then
+                echo "✅ All repositories deleted successfully." >> $GITHUB_STEP_SUMMARY
+              else
+                echo "⚠️ Some deletions failed. Review the logs for details." >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "## 📋 Repositories That Would Be Deleted" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              if [[ -f "/tmp/repos-to-delete.txt" ]]; then
+                echo "| Repository |" >> $GITHUB_STEP_SUMMARY
+                echo "|------------|" >> $GITHUB_STEP_SUMMARY
+                
+                while IFS= read -r repo; do
+                  if [[ -n "$repo" ]]; then
+                    echo "| \`$repo\` |" >> $GITHUB_STEP_SUMMARY
+                  fi
+                done < /tmp/repos-to-delete.txt
+              fi
+              
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "ℹ️ **This was a dry run.** To actually delete these repositories:" >> $GITHUB_STEP_SUMMARY
+              echo "1. Re-run this workflow" >> $GITHUB_STEP_SUMMARY
+              echo "2. Set **dry_run** to \`false\`" >> $GITHUB_STEP_SUMMARY
+              echo "3. Enter **DELETE-ALL-REPOSITORIES** in the confirmation field" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Warning:** Deleting repositories is permanent and cannot be undone." >> $GITHUB_STEP_SUMMARY
+
+      - name: Verify ACR state
+        if: inputs.dry_run == false && steps.list-repos.outputs.repo-count > 0
+        run: |
+          set -euo pipefail
+          
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          PATTERN="${{ inputs.repository_pattern }}"
+          
+          echo "Verifying ACR state after deletion..."
+          
+          REMAINING_REPOS=$(az acr repository list --name "$ACR_NAME" --output tsv 2>/dev/null || echo "")
+          
+          if [[ -n "$PATTERN" ]]; then
+            REMAINING_MATCHING=$(echo "$REMAINING_REPOS" | grep -E "$PATTERN" || echo "")
+          else
+            REMAINING_MATCHING="$REMAINING_REPOS"
+          fi
+          
+          if [[ -z "$REMAINING_MATCHING" ]]; then
+            echo "✅ ACR successfully cleared. No matching repositories remain."
+          else
+            REMAINING_COUNT=$(echo "$REMAINING_MATCHING" | wc -l)
+            echo "⚠️  $REMAINING_COUNT matching repository/repositories still exist:"
+            echo "$REMAINING_MATCHING"
+          fi
