@@ -39,7 +39,7 @@ module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0
     location: location
     skuName: skuName
     dataRetention: dataRetention
-    dailyQuotaGb: dailyQuotaGb
+    dailyQuotaGb: dailyQuotaGb == -1 ? null : string(dailyQuotaGb)
     publicNetworkAccessForIngestion: publicNetworkAccessForIngestion
     publicNetworkAccessForQuery: publicNetworkAccessForQuery
     tags: tags

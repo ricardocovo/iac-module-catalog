@@ -43,10 +43,12 @@ module containerApp 'br/public:avm/res/app/container-app:0.20.0' = {
     ingressExternal: ingressConfiguration.?external ?? false
     ingressTargetPort: ingressConfiguration.?targetPort ?? 80
     ingressTransport: ingressConfiguration.?transport ?? 'http'
-    scaleMinReplicas: scaleConfiguration.?minReplicas ?? 0
-    scaleMaxReplicas: scaleConfiguration.?maxReplicas ?? 10
-    scaleRules: scaleConfiguration.?rules ?? []
-    secrets: secretsConfiguration
+    scaleSettings: {
+      minReplicas: scaleConfiguration.?minReplicas ?? 0
+      maxReplicas: scaleConfiguration.?maxReplicas ?? 10
+      rules: scaleConfiguration.?rules ?? []
+    }
+    secrets: !empty(secretsConfiguration) ? items(secretsConfiguration) : []
     managedIdentities: managedIdentities
     tags: tags
   }

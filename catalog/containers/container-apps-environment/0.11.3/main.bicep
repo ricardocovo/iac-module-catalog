@@ -40,10 +40,16 @@ module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.11.
   params: {
     name: name
     location: location
-    logAnalyticsWorkspaceResourceId: workspaceResourceId
+    appLogsConfiguration: !empty(workspaceResourceId) ? {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: reference(workspaceResourceId, '2022-10-01').customerId
+        sharedKey: listKeys(workspaceResourceId, '2022-10-01').primarySharedKey
+      }
+    } : null
     zoneRedundant: zoneRedundant
     internal: internalLoadBalancerEnabled
-    infrastructureSubnetId: infrastructureSubnetId
+    infrastructureSubnetResourceId: infrastructureSubnetId
     dockerBridgeCidr: dockerBridgeCidr
     platformReservedCidr: platformReservedCidr
     platformReservedDnsIP: platformReservedDnsIP
