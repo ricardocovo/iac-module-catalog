@@ -4,6 +4,7 @@
         "copilot": true,
         "git worktree": true,
         "nohup": true,
-        "tee": true
+        "tee": true,
+        "bicep": true
     }
 }
