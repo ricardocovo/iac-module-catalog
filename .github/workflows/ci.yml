@@ -28,12 +28,14 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BICEP_VERSION: '0.24.24'
+  # Updated to latest stable Bicep CLI version
+  BICEP_VERSION: '0.32.4'
 
 jobs:
   lint-and-build:
     name: Lint and Build Bicep Modules
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     steps:
       - name: Checkout repository
@@ -41,19 +43,30 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Cache Bicep CLI
+        id: cache-bicep
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/bicep
+          key: bicep-${{ runner.os }}-${{ env.BICEP_VERSION }}
+
       - name: Install Bicep CLI
+        if: steps.cache-bicep.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           
           echo "Installing Bicep CLI version ${{ env.BICEP_VERSION }}"
           
           # Install specific version of Bicep
-          curl -Lo bicep https://github.com/Azure/bicep/releases/download/v${{ env.BICEP_VERSION }}/bicep-linux-x64
+          curl -fsSL -o bicep https://github.com/Azure/bicep/releases/download/v${{ env.BICEP_VERSION }}/bicep-linux-x64
           chmod +x ./bicep
           sudo mv ./bicep /usr/local/bin/bicep
           
           # Verify installation
           bicep --version
+
+      - name: Verify Bicep CLI
+        run: bicep --version
 
       - name: Find all main.bicep modules
         id: find-modules
@@ -219,12 +232,13 @@ jobs:
   actionlint:
     name: Lint GitHub Actions Workflows
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Run actionlint
-        uses: docker://rhysd/actionlint:1.6.27
+        uses: rhysd/actionlint@v1.7.7
         with:
-          args: -color
+          color: true
