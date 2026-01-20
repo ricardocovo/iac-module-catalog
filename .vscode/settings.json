@@ -3,6 +3,7 @@
         "read": true,
         "copilot": true,
         "git worktree": true,
-        "nohup": true
+        "nohup": true,
+        "tee": true
     }
 }
