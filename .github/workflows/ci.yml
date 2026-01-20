@@ -91,6 +91,8 @@ jobs:
           echo "$modules" > /tmp/modules.txt
 
       - name: Lint Bicep modules
+        id: lint
+        continue-on-error: true
         run: |
           set -euo pipefail
           
@@ -138,6 +140,8 @@ jobs:
           fi
 
       - name: Build Bicep modules
+        id: build
+        continue-on-error: true
         run: |
           set -euo pipefail
           
@@ -228,6 +232,8 @@ jobs:
           echo "✅ Summary published"
 
       - name: Validate example files
+        id: examples
+        continue-on-error: true
         run: |
           set -euo pipefail
           
@@ -279,6 +285,36 @@ jobs:
             exit 1
           fi
 
+      - name: Check for failures
+        if: always()
+        run: |
+          echo "Checking step results..."
+          
+          failed=false
+          
+          if [[ "${{ steps.lint.outcome }}" == "failure" ]]; then
+            echo "❌ Lint step failed"
+            failed=true
+          fi
+          
+          if [[ "${{ steps.build.outcome }}" == "failure" ]]; then
+            echo "❌ Build step failed"
+            failed=true
+          fi
+          
+          if [[ "${{ steps.examples.outcome }}" == "failure" ]]; then
+            echo "❌ Examples validation failed"
+            failed=true
+          fi
+          
+          if [[ "$failed" == "true" ]]; then
+            echo ""
+            echo "One or more validation steps failed. See summary for details."
+            exit 1
+          fi
+          
+          echo "✅ All validation steps passed"
+
   actionlint:
     name: Lint GitHub Actions Workflows
     runs-on: ubuntu-latest
@@ -290,5 +326,3 @@ jobs:
 
       - name: Run actionlint
         uses: rhysd/actionlint@v1.7.7
-        with:
-          color: true
