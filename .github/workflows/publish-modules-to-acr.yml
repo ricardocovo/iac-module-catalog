@@ -199,6 +199,7 @@ jobs:
           echo "✅ Module built successfully"
 
       - name: Publish to ACR
+        id: publish
         if: steps.check-version.outputs.should-publish == 'true'
         run: |
           set -euo pipefail
@@ -221,25 +222,54 @@ jobs:
             --force
           
           echo "✅ Published $ACR_REPO:$VERSION to ACR"
+          echo "publish-success=true" >> $GITHUB_OUTPUT
+
+      - name: Tag major version
+        if: steps.publish.outputs.publish-success == 'true'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
           
-          # Also tag as 'latest' for the major version
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          ACR_REPO="${{ steps.metadata.outputs.acr-repo }}"
+          VERSION="${{ steps.metadata.outputs.version }}"
           MAJOR_VERSION=$(echo "$VERSION" | cut -d. -f1)
+          
+          echo "Tagging major version: v${MAJOR_VERSION}"
+          
+          # Use az acr import with explicit subscription to create major version tag
+          # This requires Contributor or AcrPush + Reader on the ACR resource
           az acr import \
             --name "$ACR_NAME" \
+            --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             --source "${ACR_NAME}.azurecr.io/${ACR_REPO}:${VERSION}" \
             --image "${ACR_REPO}:v${MAJOR_VERSION}" \
-            --force || echo "Could not tag major version"
+            --force
+          
+          echo "✅ Tagged as v${MAJOR_VERSION}"
 
       - name: Save status for summary
         if: always()
         run: |
-          # Determine the actual status for this module
-          if [[ "${{ steps.check-version.outputs.should-publish }}" == "true" ]]; then
+          # Determine the actual status for this module based on what actually happened
+          if [[ "${{ steps.check-version.outputs.should-publish }}" != "true" ]]; then
+            # Was not supposed to publish
+            if [[ "${{ steps.check-version.outputs.exists }}" == "true" ]]; then
+              ACTUAL_STATUS="exists"
+            else
+              ACTUAL_STATUS="skipped"
+            fi
+          elif [[ "${{ steps.publish.outputs.publish-success }}" == "true" ]]; then
+            # Publish step succeeded
             ACTUAL_STATUS="published"
-          elif [[ "${{ steps.check-version.outputs.exists }}" == "true" ]]; then
-            ACTUAL_STATUS="exists"
-          else
+          elif [[ "${{ steps.publish.outcome }}" == "failure" ]]; then
+            # Publish step failed
             ACTUAL_STATUS="failed"
+          elif [[ "${{ steps.publish.outcome }}" == "skipped" ]]; then
+            # Publish step was skipped (build failed)
+            ACTUAL_STATUS="failed"
+          else
+            ACTUAL_STATUS="unknown"
           fi
           
           # Save status to file for summary job
