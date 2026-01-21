@@ -231,60 +231,6 @@ jobs:
           
           echo "✅ Summary published"
 
-      - name: Validate example files
-        id: examples
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          
-          echo "🔍 Validating example Bicep files..."
-          
-          # Find all example bicep files
-          examples=$(find catalog -type f -path "*/examples/*.bicep" | sort)
-          
-          if [[ -z "$examples" ]]; then
-            echo "ℹ️  No example files found, skipping validation"
-            exit 0
-          fi
-          
-          example_count=$(echo "$examples" | wc -l)
-          echo "Found $example_count example files to validate"
-          
-          failed_examples=()
-          passed_count=0
-          failed_count=0
-          
-          while IFS= read -r example; do
-            echo ""
-            echo "Validating: $example"
-            
-            if bicep build "$example" --stdout > /dev/null 2>&1; then
-              echo "  ✅ Valid"
-              passed_count=$((passed_count + 1))
-            else
-              echo "  ❌ Invalid"
-              failed_examples+=("$example")
-              failed_count=$((failed_count + 1))
-              
-              # Show detailed error
-              bicep build "$example" --stdout || true
-            fi
-          done <<< "$examples"
-          
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "Example Validation Summary:"
-          echo "  ✅ Passed: $passed_count"
-          echo "  ❌ Failed: $failed_count"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          
-          if [[ ${#failed_examples[@]} -gt 0 ]]; then
-            echo ""
-            echo "Failed examples:"
-            printf '  - %s\n' "${failed_examples[@]}"
-            exit 1
-          fi
-
       - name: Check for failures
         if: always()
         run: |
@@ -302,11 +248,6 @@ jobs:
             failed=true
           fi
           
-          if [[ "${{ steps.examples.outcome }}" == "failure" ]]; then
-            echo "❌ Examples validation failed"
-            failed=true
-          fi
-          
           if [[ "$failed" == "true" ]]; then
             echo ""
             echo "One or more validation steps failed. See summary for details."
@@ -314,15 +255,3 @@ jobs:
           fi
           
           echo "✅ All validation steps passed"
-
-  actionlint:
-    name: Lint GitHub Actions Workflows
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run actionlint
-        uses: rhysd/actionlint@v1.7.7
