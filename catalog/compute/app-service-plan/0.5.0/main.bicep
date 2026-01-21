@@ -18,8 +18,8 @@ param skuName string = 'P1v3'
 param skuCapacity int = 1
 
 @description('Kind of resource')
-@allowed(['Windows', 'Linux', 'FunctionApp'])
-param kind string = 'Linux'
+@allowed(['windows', 'linux', 'functionapp'])
+param kind string = 'linux'
 
 @description('Tags')
 param tags object = {}
@@ -32,7 +32,7 @@ module appServicePlan 'br/public:avm/res/web/serverfarm:0.5.0' = {
     skuName: skuName
     skuCapacity: skuCapacity
     kind: kind
-    reserved: kind == 'Linux'
+    reserved: kind == 'linux'
     tags: tags
   }
 }

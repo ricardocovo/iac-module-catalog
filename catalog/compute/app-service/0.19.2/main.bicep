@@ -42,9 +42,8 @@ module appService 'br/public:avm/res/web/site:0.19.2' = {
     location: location
     kind: kind
     serverFarmResourceId: serverFarmResourceId
-    siteConfig: siteConfig
-    appSettingsKeyValuePairs: appSettingsKeyValuePairs
-    virtualNetworkSubnetId: virtualNetworkSubnetId
+    siteConfig: union(siteConfig, !empty(appSettingsKeyValuePairs) ? { appSettings: appSettingsKeyValuePairs } : {})
+    virtualNetworkSubnetResourceId: virtualNetworkSubnetId
     privateEndpoints: privateEndpoints
     managedIdentities: managedIdentities
     tags: tags

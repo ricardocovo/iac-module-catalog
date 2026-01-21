@@ -53,7 +53,7 @@ module redisCache 'br/public:avm/res/cache/redis:0.16.1' = {
     publicNetworkAccess: publicNetworkAccess
     redisConfiguration: redisConfiguration
     privateEndpoints: privateEndpoints
-    zones: zones
+    availabilityZones: zones
     tags: tags
   }
 }

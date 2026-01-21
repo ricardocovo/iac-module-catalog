@@ -59,6 +59,7 @@ module postgresqlServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.
   params: {
     name: name
     location: location
+    availabilityZone: 1
     skuName: skuName
     tier: 'GeneralPurpose'
     storageSizeGB: storageSizeGB

@@ -48,9 +48,9 @@ module cosmosDbAccount 'br/public:avm/res/document-db/database-account:0.17.0' =
     name: name
     location: location
     defaultConsistencyLevel: defaultConsistencyLevel
-    automaticFailover: automaticFailover
+    enableAutomaticFailover: automaticFailover
     enableMultipleWriteLocations: enableMultipleWriteLocations
-    locations: locations
+    failoverLocations: locations
     networkRestrictions: networkRestrictions
     privateEndpoints: privateEndpoints
     sqlDatabases: sqlDatabases
