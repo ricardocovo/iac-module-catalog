@@ -79,26 +79,49 @@ jobs:
         run: |
           set -euo pipefail
           
-          changed_only="${{ inputs.changed_only }}"
+          # Determine if we should only check changed files
+          # - For workflow_dispatch: use the input value
+          # - For push/pull_request: always check only changed files
+          event_name="${{ github.event_name }}"
+          changed_only_input="${{ inputs.changed_only }}"
+          
+          if [[ "$event_name" == "workflow_dispatch" ]]; then
+            changed_only="$changed_only_input"
+          else
+            # For push and pull_request, always check only changed files
+            changed_only="true"
+          fi
+          
+          echo "Event: $event_name, Changed only: $changed_only"
           
           if [[ "$changed_only" == "true" ]]; then
             echo "🔍 Finding only changed main.bicep modules..."
             
             # Get the base ref for comparison
-            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            if [[ "$event_name" == "pull_request" ]]; then
               base_ref="origin/${{ github.base_ref }}"
+              echo "Comparing against PR base: $base_ref"
             else
-              # For push/workflow_dispatch, compare with previous commit
-              base_ref="HEAD~1"
+              # For push, compare with the before commit if available
+              before_sha="${{ github.event.before }}"
+              if [[ -n "$before_sha" && "$before_sha" != "0000000000000000000000000000000000000000" ]]; then
+                base_ref="$before_sha"
+                echo "Comparing against previous commit: $base_ref"
+              else
+                # Fallback to HEAD~1
+                base_ref="HEAD~1"
+                echo "Comparing against HEAD~1"
+              fi
             fi
             
             # Find changed bicep files that are main.bicep
-            modules=$(git diff --name-only --diff-filter=ACMR "$base_ref" -- 'catalog/**/main.bicep' 2>/dev/null | sort || echo "")
+            modules=$(git diff --name-only --diff-filter=ACMR "$base_ref" HEAD -- 'catalog/**/main.bicep' 2>/dev/null | sort || echo "")
             
             if [[ -z "$modules" ]]; then
-              echo "ℹ️  No changed main.bicep modules found"
-              echo "Falling back to all modules..."
-              modules=$(find catalog -type f -name "main.bicep" | sort)
+              echo "ℹ️  No changed main.bicep modules found in this commit/PR"
+              echo "No modules to validate - exiting successfully"
+              touch /tmp/modules.txt
+              exit 0
             fi
           else
             echo "🔍 Discovering all main.bicep modules in catalog/"
@@ -123,7 +146,15 @@ jobs:
         run: |
           set -euo pipefail
           
-          echo "🔍 Linting all Bicep modules..."
+          # Check if there are modules to process
+          if [[ ! -s /tmp/modules.txt ]]; then
+            echo "ℹ️  No modules to lint"
+            mkdir -p /tmp/results
+            echo "module|lint_status" > /tmp/results/lint_results.txt
+            exit 0
+          fi
+          
+          echo "🔍 Linting Bicep modules..."
           
           failed_modules=()
           passed_count=0
@@ -172,7 +203,14 @@ jobs:
         run: |
           set -euo pipefail
           
-          echo "🔨 Building all Bicep modules..."
+          echo "🔨 Building Bicep modules..."
+          
+          # Check if there are modules to build
+          if [[ ! -s /tmp/modules.txt ]]; then
+            echo "ℹ️ No modules to build"
+            echo "module|build_status" > /tmp/results/build_results.txt
+            exit 0
+          fi
           
           failed_modules=()
           passed_count=0
@@ -230,22 +268,32 @@ jobs:
           {
             echo "## 🔍 Bicep Module Validation Results"
             echo ""
-            echo "| Module | Lint | Build |"
-            echo "|--------|------|-------|"
             
-            # Merge results from both files
-            while IFS= read -r module; do
-              # Get lint result
-              lint_result=$(grep "^$module|" /tmp/results/lint_results.txt 2>/dev/null | cut -d'|' -f2 || echo "⚠️ Skipped")
+            # Check if there are modules to report
+            if [[ ! -s /tmp/modules.txt ]]; then
+              echo "ℹ️ **No modules were validated in this run.**"
+              echo ""
+              echo "This may be because:"
+              echo "- No Bicep modules were changed in this commit"
+              echo "- The \`changed_only\` option was enabled and no changes were detected"
+            else
+              echo "| Module | Lint | Build |"
+              echo "|--------|------|-------|"
               
-              # Get build result
-              build_result=$(grep "^$module|" /tmp/results/build_results.txt 2>/dev/null | cut -d'|' -f2 || echo "⚠️ Skipped")
-              
-              # Format module path for display
-              module_display=$(echo "$module" | sed 's|catalog/||')
-              
-              echo "| \`$module_display\` | $lint_result | $build_result |"
-            done < /tmp/modules.txt
+              # Merge results from both files
+              while IFS= read -r module; do
+                # Get lint result
+                lint_result=$(grep "^$module|" /tmp/results/lint_results.txt 2>/dev/null | cut -d'|' -f2 || echo "⚠️ Skipped")
+                
+                # Get build result
+                build_result=$(grep "^$module|" /tmp/results/build_results.txt 2>/dev/null | cut -d'|' -f2 || echo "⚠️ Skipped")
+                
+                # Format module path for display
+                module_display=$(echo "$module" | sed 's|catalog/||')
+                
+                echo "| \`$module_display\` | $lint_result | $build_result |"
+              done < /tmp/modules.txt
+            fi
             
             echo ""
             echo "---"
