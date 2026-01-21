@@ -1,4 +1,5 @@
 // Azure Verified Module Reference: Azure OpenAI / Cognitive Services
+// Adding Comment to trigger version update.
 // Registry: br/public:avm/res/cognitive-services/account
 
 metadata name = 'Azure OpenAI'
