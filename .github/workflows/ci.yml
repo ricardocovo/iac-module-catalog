@@ -16,6 +16,12 @@ on:
       - 'catalog/**/*.bicepparam'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
+    inputs:
+      changed_only:
+        description: 'Only validate new and updated modules (based on git diff)'
+        required: false
+        default: false
+        type: boolean
 
 # Security: Default to read-only permissions
 permissions:
@@ -73,10 +79,31 @@ jobs:
         run: |
           set -euo pipefail
           
-          echo "Discovering all main.bicep modules in catalog/"
+          changed_only="${{ inputs.changed_only }}"
           
-          # Find all main.bicep files
-          modules=$(find catalog -type f -name "main.bicep" | sort)
+          if [[ "$changed_only" == "true" ]]; then
+            echo "🔍 Finding only changed main.bicep modules..."
+            
+            # Get the base ref for comparison
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              base_ref="origin/${{ github.base_ref }}"
+            else
+              # For push/workflow_dispatch, compare with previous commit
+              base_ref="HEAD~1"
+            fi
+            
+            # Find changed bicep files that are main.bicep
+            modules=$(git diff --name-only --diff-filter=ACMR "$base_ref" -- 'catalog/**/main.bicep' 2>/dev/null | sort || echo "")
+            
+            if [[ -z "$modules" ]]; then
+              echo "ℹ️  No changed main.bicep modules found"
+              echo "Falling back to all modules..."
+              modules=$(find catalog -type f -name "main.bicep" | sort)
+            fi
+          else
+            echo "🔍 Discovering all main.bicep modules in catalog/"
+            modules=$(find catalog -type f -name "main.bicep" | sort)
+          fi
           
           if [[ -z "$modules" ]]; then
             echo "❌ No main.bicep modules found"
