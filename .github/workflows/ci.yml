@@ -20,7 +20,7 @@ on:
       changed_only:
         description: 'Only validate new and updated modules (based on git diff)'
         required: false
-        default: false
+        default: true
         type: boolean
 
 # Security: Default to read-only permissions
