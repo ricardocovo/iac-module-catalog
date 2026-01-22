@@ -26,8 +26,9 @@ AI services for Microsoft Foundry workloads
 Application hosting and web services
 - App Service Plans
 - App Services (Web Apps)
+- Function Apps (Serverless)
 
-**Total: 2 modules**
+**Total: 3 modules**
 
 ### 💾 [Storage Modules](storage/)
 Data storage and container management

@@ -6,8 +6,9 @@ Azure Verified Modules for compute and web services in the Microsoft Foundry lan
 
 | Module | AVM Reference | Version | Description |
 |--------|--------------|---------|-------------|
-| [App Service Plan](app-service-plan.bicep) | `avm/res/web/serverfarm` | 0.3.0 | App Service Plan for hosting |
-| [App Service](app-service.bicep) | `avm/res/web/site` | 0.9.0 | App Service (Web App) for chat UI |
+| [App Service Plan](app-service-plan/) | `avm/res/web/serverfarm` | 0.6.0 | App Service Plan for hosting |
+| [App Service](app-service/) | `avm/res/web/site` | 0.21.0 | App Service (Web App) for web applications |
+| [Function App](function-app/) | `avm/res/web/site` | 0.8.0 | Azure Function App for serverless compute |
 
 ## Usage Example
 
