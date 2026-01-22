@@ -69,3 +69,7 @@ catalog/
         main.bicep
         README.md
 ``` 
+
+## Update Documentation
+
+The root `README.md` and the category `README.md` files should be updated to reflect any new modules or versions added.
