@@ -248,43 +248,23 @@ jobs:
           
           echo "✅ Tagged as v${MAJOR_VERSION}"
 
-      - name: Save status for summary
+      - name: Log publish status
         if: always()
         run: |
-          # Determine the actual status for this module based on what actually happened
+          # Determine the actual status for this module
           if [[ "${{ steps.check-version.outputs.should-publish }}" != "true" ]]; then
-            # Was not supposed to publish
             if [[ "${{ steps.check-version.outputs.exists }}" == "true" ]]; then
-              ACTUAL_STATUS="exists"
+              echo "⏭️ Version ${{ steps.metadata.outputs.version }} already exists - skipped"
             else
-              ACTUAL_STATUS="skipped"
+              echo "⚠️ Module skipped"
             fi
           elif [[ "${{ steps.publish.outputs.publish-success }}" == "true" ]]; then
-            # Publish step succeeded
-            ACTUAL_STATUS="published"
+            echo "✅ Successfully published ${{ steps.metadata.outputs.acr-repo }}:${{ steps.metadata.outputs.version }}"
           elif [[ "${{ steps.publish.outcome }}" == "failure" ]]; then
-            # Publish step failed
-            ACTUAL_STATUS="failed"
-          elif [[ "${{ steps.publish.outcome }}" == "skipped" ]]; then
-            # Publish step was skipped (build failed)
-            ACTUAL_STATUS="failed"
+            echo "❌ Failed to publish ${{ steps.metadata.outputs.acr-repo }}:${{ steps.metadata.outputs.version }}"
           else
-            ACTUAL_STATUS="unknown"
+            echo "⚠️ Unknown status for ${{ steps.metadata.outputs.acr-repo }}:${{ steps.metadata.outputs.version }}"
           fi
-          
-          # Save status to file for summary job
-          mkdir -p /tmp/module-status
-          cat > /tmp/module-status/${{ steps.metadata.outputs.category }}-${{ steps.metadata.outputs.module-name }}.txt << EOF
-          ${{ steps.metadata.outputs.module-path }}|${{ steps.metadata.outputs.category }}|${{ steps.metadata.outputs.module-name }}|${{ steps.metadata.outputs.version }}|${{ steps.metadata.outputs.acr-repo }}|${ACTUAL_STATUS}
-          EOF
-
-      - name: Upload status artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: module-status-${{ steps.metadata.outputs.category }}-${{ steps.metadata.outputs.module-name }}-${{ steps.metadata.outputs.version }}
-          path: /tmp/module-status/
-          retention-days: 1
 
   cleanup-orphaned-modules:
     name: Cleanup Orphaned Modules
@@ -455,16 +435,6 @@ jobs:
     if: always() && needs.detect-changed-modules.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download all status artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: module-status-*
-          path: /tmp/module-statuses
-          merge-multiple: true
-
       - name: Generate summary
         run: |
           set -euo pipefail
@@ -485,46 +455,11 @@ jobs:
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 📦 Module Status" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Module Processing" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Category | Module | Version | ACR Repository | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|--------|---------|----------------|--------|" >> $GITHUB_STEP_SUMMARY
-          
-          # Read status from artifacts created by publish jobs
-          if [ -d "/tmp/module-statuses" ]; then
-            for status_file in /tmp/module-statuses/*.txt; do
-              if [ -f "$status_file" ]; then
-                # Read the status line: path|category|module|version|repo|status
-                IFS='|' read -r MODULE_PATH CATEGORY MODULE_NAME VERSION ACR_REPO ACTUAL_STATUS < "$status_file"
-                
-                # Convert status to display format
-                case "$ACTUAL_STATUS" in
-                  "published")
-                    STATUS="✅ Published"
-                    ;;
-                  "exists")
-                    STATUS="⏭️ Exists"
-                    ;;
-                  "failed")
-                    STATUS="❌ Failed"
-                    ;;
-                  *)
-                    STATUS="⚠️ Unknown"
-                    ;;
-                esac
-                
-                echo "| \`${CATEGORY}\` | \`${MODULE_NAME}\` | \`${VERSION}\` | \`${ACR_REPO}\` | ${STATUS} |" >> $GITHUB_STEP_SUMMARY
-              fi
-            done
-          else
-            echo "| - | - | - | - | ⚠️ No status data |" >> $GITHUB_STEP_SUMMARY
-          fi
-          
+          echo "Module details are available in individual job logs above." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Legend" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **Published**: Successfully published to ACR in this run" >> $GITHUB_STEP_SUMMARY
-          echo "- ⏭️ **Exists**: Version already exists in ACR (skipped)" >> $GITHUB_STEP_SUMMARY
-          echo "- ❌ **Failed**: Publish operation failed" >> $GITHUB_STEP_SUMMARY
+          echo "Check each module's publish job for specific status information." >> $GITHUB_STEP_SUMMARY
           
           # Add cleanup summary if it ran
           if [[ "${{ needs.cleanup-orphaned-modules.result }}" != "skipped" ]]; then
