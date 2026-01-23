@@ -9,7 +9,11 @@ metadata owner = 'Azure Verified Modules'
 param name string
 
 @description('The location')
-param location string = resourceGroup().location
+@allowed([
+  'canadacentral'
+  'canadaeast'
+])
+param location string = 'canadacentral'
 
 @description('The SKU name')
 @allowed([
