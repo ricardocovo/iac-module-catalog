@@ -1,7 +1,11 @@
 // Production deployment of Azure Static Web App with Standard SKU
 targetScope = 'resourceGroup'
 
-param location string = 'eastus2'
+@allowed([
+  'canadacentral'
+  'canadaeast'
+])
+param location string = 'canadacentral'
 param environment string = 'prod'
 param appName string = 'myapp'
 
