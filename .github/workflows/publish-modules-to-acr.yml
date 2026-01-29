@@ -131,8 +131,8 @@ jobs:
             exit 1
           fi
           
-          # Construct ACR repository name: bicep/{category}/{module-name}
-          ACR_REPO="bicep/${CATEGORY}/${MODULE_NAME}"
+          # Construct ACR repository name: {category}/{module-name}
+          ACR_REPO="${CATEGORY}/${MODULE_NAME}"
           
           echo "category=$CATEGORY" >> $GITHUB_OUTPUT
           echo "module-name=$MODULE_NAME" >> $GITHUB_OUTPUT
