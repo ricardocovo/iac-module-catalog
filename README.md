@@ -1,8 +1,8 @@
 # Infrastructure as Code Module Catalog
 
-Pre-approved Bicep module catalog for deploying Microsoft Foundry landing zone architectures with enterprise security and compliance.
+Pre-approved Bicep module catalog for deploying Azure architectures with enterprise security and compliance.
 
-This catalog is meant to be Architecture agnostic.
+This catalog is architecture-agnostic and designed to support any Azure landing zone or application pattern.
 
 ## 🎯 Overview
 
@@ -10,7 +10,7 @@ This catalog provides production-ready, validated Bicep modules for enterprise A
 
 - **Canadian FSI Security Compliance** - Private endpoints, RBAC, encryption at rest/in transit
 - **Enterprise Scale** - Zone redundancy, high availability, multi-region support
-- **AI Workloads** - Optimized for Microsoft Foundry, Azure OpenAI, and AI agent architectures
+- **AI Workloads** - Optimized for Azure OpenAI, AI Search, and intelligent application architectures
 - **Governance** - Consistent naming, tagging, and resource organization
 
 ## 📦 Module Catalog
@@ -46,7 +46,7 @@ Modules are automatically published to Azure Container Registry via GitHub Actio
 module vnet 'br:myacr.azurecr.io/bicep/network/virtual-network:0.4.0' = {
   name: 'vnet-deployment'
   params: {
-    name: 'vnet-hub-foundry-cac'
+    name: 'vnet-hub-prod-cac'
     location: 'canadacentral'
     addressPrefixes: ['10.0.0.0/16']
   }
@@ -56,7 +56,7 @@ module vnet 'br:myacr.azurecr.io/bicep/network/virtual-network:0.4.0' = {
 module openai 'br:myacr.azurecr.io/bicep/ai/cognitive-services-account:v0' = {
   name: 'openai-deployment'
   params: {
-    name: 'oai-foundry-cac'
+    name: 'oai-prod-cac'
     kind: 'OpenAI'
   }
 }
@@ -100,9 +100,9 @@ managedIdentities: {
 // Apply consistent tagging
 tags: {
   environment: 'production'
-  workload: 'foundry'
+  workload: 'app-platform'
   dataClassification: 'confidential'
-  costCenter: 'ai-platform'
+  costCenter: 'engineering'
 }
 ```
 
