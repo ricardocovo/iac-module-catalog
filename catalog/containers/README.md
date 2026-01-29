@@ -4,10 +4,10 @@ Azure Verified Modules for containerized applications in the Microsoft Foundry l
 
 ## Available Modules
 
-| Module | AVM Reference | Version | Description |
-|--------|--------------|---------|-------------|
-| [Container Apps Environment](container-apps-environment.bicep) | `avm/res/app/managed-environment` | 0.8.0 | Container Apps managed environment |
-| [Container App](container-app.bicep) | `avm/res/app/container-app` | 0.9.0 | Container App deployment |
+| Module | AVM Reference | Versions | Description |
+|--------|--------------|----------|-------------|
+| [Container Apps Environment](container-apps-environment/) | `avm/res/app/managed-environment` | [0.10.2](container-apps-environment/0.10.2/) \| [0.11.0](container-apps-environment/0.11.0/) \| [0.11.1](container-apps-environment/0.11.1/) \| [0.11.2](container-apps-environment/0.11.2/) \| [0.11.3](container-apps-environment/0.11.3/) | Container Apps managed environment |
+| [Container App](container-app/) | `avm/res/app/container-app` | [0.18.0](container-app/0.18.0/) \| [0.18.1](container-app/0.18.1/) \| [0.18.2](container-app/0.18.2/) \| [0.19.0](container-app/0.19.0/) \| [0.20.0](container-app/0.20.0/) | Container App deployment |
 
 ## Usage Example
 

@@ -4,13 +4,13 @@ Azure Verified Modules for data persistence and messaging services in the Micros
 
 ## Available Modules
 
-| Module | AVM Reference | Version | Description |
-|--------|--------------|---------|-------------|
-| [Azure Cache for Redis](redis-cache.bicep) | `avm/res/cache/redis` | 0.3.0 | In-memory data store for caching |
-| [Cosmos DB](cosmos-db-account.bicep) | `avm/res/document-db/database-account` | 0.9.0 | Globally distributed NoSQL database |
-| [Azure SQL Server](sql-server.bicep) | `avm/res/sql/server` | 0.7.0 | Relational database service |
-| [PostgreSQL Flexible Server](postgresql-flexible-server.bicep) | `avm/res/db-for-postgre-sql/flexible-server` | 0.3.0 | Open-source relational database |
-| [Service Bus](service-bus-namespace.bicep) | `avm/res/service-bus/namespace` | 0.10.0 | Enterprise message broker |
+| Module | AVM Reference | Versions | Description |
+|--------|--------------|----------|-------------|
+| [Azure Cache for Redis](redis-cache/) | `avm/res/cache/redis` | [0.16.0](redis-cache/0.16.0/) \| [0.16.1](redis-cache/0.16.1/) \| [0.16.2](redis-cache/0.16.2/) \| [0.16.3](redis-cache/0.16.3/) \| [0.16.4](redis-cache/0.16.4/) | In-memory data store for caching |
+| [Cosmos DB](cosmos-db-account/) | `avm/res/document-db/database-account` | [0.15.0](cosmos-db-account/0.15.0/) \| [0.15.1](cosmos-db-account/0.15.1/) \| [0.16.0](cosmos-db-account/0.16.0/) \| [0.17.0](cosmos-db-account/0.17.0/) \| [0.18.0](cosmos-db-account/0.18.0/) | Globally distributed NoSQL database |
+| [Azure SQL Server](sql-server/) | `avm/res/sql/server` | [0.20.1](sql-server/0.20.1/) \| [0.20.2](sql-server/0.20.2/) \| [0.20.3](sql-server/0.20.3/) \| [0.21.0](sql-server/0.21.0/) \| [0.21.1](sql-server/0.21.1/) | Relational database service |
+| [PostgreSQL Flexible Server](postgresql-flexible-server/) | `avm/res/db-for-postgre-sql/flexible-server` | [0.13.1](postgresql-flexible-server/0.13.1/) \| [0.13.2](postgresql-flexible-server/0.13.2/) \| [0.14.0](postgresql-flexible-server/0.14.0/) \| [0.15.0](postgresql-flexible-server/0.15.0/) \| [0.15.1](postgresql-flexible-server/0.15.1/) | Open-source relational database |
+| [Service Bus](service-bus-namespace/) | `avm/res/service-bus/namespace` | [0.14.0](service-bus-namespace/0.14.0/) \| [0.14.1](service-bus-namespace/0.14.1/) \| [0.15.0](service-bus-namespace/0.15.0/) \| [0.15.1](service-bus-namespace/0.15.1/) \| [0.16.0](service-bus-namespace/0.16.0/) | Enterprise message broker |
 
 ## Usage Examples
 
