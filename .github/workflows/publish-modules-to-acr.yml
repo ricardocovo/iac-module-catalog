@@ -571,7 +571,7 @@ jobs:
                       ((FAILED_COUNT++)) || true
                       ;;
                     skipped)
-                      echo "| \`${module}\` | \`${version}\` | ⏭️ ${message} |" >> $GITHUB_STEP_SUMMARY
+                      # Count skipped modules but don't add a row to the table
                       ((SKIPPED_COUNT++)) || true
                       ;;
                     *)
