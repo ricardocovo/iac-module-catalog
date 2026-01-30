@@ -4,17 +4,9 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'catalog/**/*.bicep'
-      - 'catalog/**/*.bicepparam'
-      - '.github/workflows/ci.yml'
   pull_request:
     branches:
       - main
-    paths:
-      - 'catalog/**/*.bicep'
-      - 'catalog/**/*.bicepparam'
-      - '.github/workflows/ci.yml'
   workflow_dispatch:
     inputs:
       changed_only:
