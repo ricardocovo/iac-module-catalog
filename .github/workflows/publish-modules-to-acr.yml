@@ -486,19 +486,14 @@ jobs:
           echo "## 📦 Module Processing Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
+          # Ensure directory exists before processing
+          mkdir -p /tmp/all-results
+          
           # Debug: Check what was downloaded
           echo "Checking downloaded artifacts..."
-          if [[ -d "/tmp/all-results" ]]; then
-            echo "Contents of /tmp/all-results:"
-            ls -la /tmp/all-results/ || echo "Failed to list directory"
-            echo ""
-          else
-            echo "ERROR: /tmp/all-results directory does not exist"
-            echo "| Module | Version | Status |" >> $GITHUB_STEP_SUMMARY
-            echo "|--------|---------|--------|" >> $GITHUB_STEP_SUMMARY
-            echo "| - | - | ⚠️ No results directory found |" >> $GITHUB_STEP_SUMMARY
-            exit 0
-          fi
+          echo "Contents of /tmp/all-results:"
+          ls -la /tmp/all-results/ || echo "Directory is empty or failed to list"
+          echo ""
           
           # Aggregate results from all matrix jobs
           SUCCESS_COUNT=0
