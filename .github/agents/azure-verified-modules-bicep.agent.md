@@ -1,7 +1,7 @@
 ---
 description: "Create, update, or review Azure IaC in Bicep using Azure Verified Modules (AVM)."
 name: "Azure AVM Bicep mode"
-tools: ['vscode', 'execute/getTerminalOutput', 'execute/runTask', 'execute/createAndRunTask', 'execute/runTests', 'execute/testFailure', 'execute/runInTerminal', 'read/terminalSelection', 'read/terminalLastCommand', 'read/getTaskOutput', 'read/problems', 'read/readFile', 'edit/editFiles', 'search', 'web', 'bicep-(experimental)/get_bicep_best_practices', 'com.microsoft/azure/search']
+tools: ['vscode', 'execute/testFailure', 'execute/getTerminalOutput', 'execute/runTask', 'execute/createAndRunTask', 'execute/runInTerminal', 'execute/runTests', 'read/problems', 'read/readFile', 'read/terminalSelection', 'read/terminalLastCommand', 'read/getTaskOutput', 'edit/editFiles', 'search', 'web', 'com.microsoft/azure/search', 'bicep/get_bicep_best_practices']
 ---
 
 # Azure AVM Bicep mode
