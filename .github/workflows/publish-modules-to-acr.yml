@@ -146,12 +146,32 @@ jobs:
           echo "🏷️  Version: $VERSION"
           echo "🎯 ACR Repo: $ACR_REPO"
 
+      - name: Clear Azure CLI Session
+        run: |
+          # Remove any existing Azure CLI sessions to prevent credential conflicts
+          az logout 2>/dev/null || true
+          rm -rf ~/.azure 2>/dev/null || true
+          echo "✅ Cleared Azure CLI session"
+
       - name: Azure Login via OIDC
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        run: |
+          set -euo pipefail
+          
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          
+          echo "Logging into ACR: ${ACR_NAME}.azurecr.io"
+          
+          # Login to ACR using the OIDC token
+          az acr login --name "$ACR_NAME"
+          
+          echo "✅ Successfully logged into ACR"
 
       - name: Check if version exists in ACR
         id: check-version
@@ -225,8 +245,7 @@ jobs:
           cd "$MODULE_DIR"
           az bicep publish \
             --file main.bicep \
-            --target "br:${ACR_TARGET}" \
-            --force
+            --target "br:${ACR_TARGET}"
           
           echo "✅ Published $ACR_REPO:$VERSION to ACR"
           echo "publish-success=true" >> $GITHUB_OUTPUT
@@ -302,6 +321,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Clear Azure CLI Session
+        run: |
+          # Remove any existing Azure CLI sessions to prevent credential conflicts
+          az logout 2>/dev/null || true
+          rm -rf ~/.azure 2>/dev/null || true
+          echo "✅ Cleared Azure CLI session"
 
       - name: Azure Login via OIDC
         uses: azure/login@v2
@@ -493,25 +519,14 @@ jobs:
           echo "## 📦 Module Processing Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
+          # Ensure directory exists before processing
+          mkdir -p /tmp/all-results
+          
           # Debug: Check what was downloaded
           echo "Checking downloaded artifacts..."
-          if [[ -d "/tmp/all-results" ]]; then
-            echo "Contents of /tmp/all-results:"
-            ls -la /tmp/all-results/ || echo "Failed to list directory"
-            echo ""
-          else
-            echo "ERROR: /tmp/all-results directory does not exist"
-            echo "| Module | Version | Status |" >> $GITHUB_STEP_SUMMARY
-            echo "|--------|---------|--------|" >> $GITHUB_STEP_SUMMARY
-            echo "| - | - | ⚠️ No results directory found |" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Summary" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ **Published:** 0" >> $GITHUB_STEP_SUMMARY
-            echo "- ❌ **Failed:** 0" >> $GITHUB_STEP_SUMMARY
-            echo "- ⏭️ **Skipped:** 0" >> $GITHUB_STEP_SUMMARY
-            exit 0
-          fi
+          echo "Contents of /tmp/all-results:"
+          ls -la /tmp/all-results/ || echo "Directory is empty or failed to list"
+          echo ""
           
           # Aggregate results from all matrix jobs
           SUCCESS_COUNT=0
