@@ -92,7 +92,7 @@ jobs:
       publish-results: ${{ steps.collect-results.outputs.results }}
     strategy:
       fail-fast: false
-      max-parallel: 5
+      max-parallel: 3
       matrix:
         module-path: ${{ fromJson(needs.detect-changed-modules.outputs.matrix) }}
     
@@ -217,6 +217,13 @@ jobs:
           bicep build main.bicep --outfile /tmp/main.json
           
           echo "✅ Module built successfully"
+
+      - name: Login to ACR
+        if: steps.check-version.outputs.should-publish == 'true'
+        run: |
+          ACR_NAME="${{ secrets.ACR_NAME }}"
+          az acr login --name "$ACR_NAME"
+          echo "✅ Logged into ACR: $ACR_NAME"
 
       - name: Publish to ACR
         id: publish
@@ -543,22 +550,29 @@ jobs:
               echo "Processing: $result_file"
               
               if [[ -f "$result_file" && -s "$result_file" ]]; then
-                while IFS='|' read -r status module version message; do
+                # Read file with proper error handling
+                while IFS='|' read -r status module version message || [[ -n "$status" ]]; do
                   # Skip empty lines
                   [[ -z "$status" ]] && continue
+                  
+                  # Trim whitespace
+                  status=$(echo "$status" | xargs)
+                  module=$(echo "$module" | xargs)
+                  version=$(echo "$version" | xargs)
+                  message=$(echo "$message" | xargs)
                   
                   case "$status" in
                     success)
                       echo "| \`${module}\` | \`${version}\` | ✅ ${message} |" >> $GITHUB_STEP_SUMMARY
-                      ((SUCCESS_COUNT++))
+                      ((SUCCESS_COUNT++)) || true
                       ;;
                     failure)
                       echo "| \`${module}\` | \`${version}\` | ❌ ${message} |" >> $GITHUB_STEP_SUMMARY
-                      ((FAILED_COUNT++))
+                      ((FAILED_COUNT++)) || true
                       ;;
                     skipped)
                       echo "| \`${module}\` | \`${version}\` | ⏭️ ${message} |" >> $GITHUB_STEP_SUMMARY
-                      ((SKIPPED_COUNT++))
+                      ((SKIPPED_COUNT++)) || true
                       ;;
                     *)
                       echo "| \`${module}\` | \`${version}\` | ⚠️ ${message} |" >> $GITHUB_STEP_SUMMARY
