@@ -248,22 +248,44 @@ jobs:
           echo "✅ Tagged as v${MAJOR_VERSION}"
 
       - name: Log publish status
+        id: log-status
         if: always()
         run: |
+          # Create result file for this module
+          mkdir -p /tmp/publish-results
+          
+          MODULE="${{ steps.metadata.outputs.acr-repo }}"
+          VERSION="${{ steps.metadata.outputs.version }}"
+          # Use module name with version as unique filename
+          RESULT_FILE="/tmp/publish-results/${MODULE//\//_}_${VERSION}.txt"
+          
           # Determine the actual status for this module
           if [[ "${{ steps.check-version.outputs.should-publish }}" != "true" ]]; then
             if [[ "${{ steps.check-version.outputs.exists }}" == "true" ]]; then
-              echo "⏭️ Version ${{ steps.metadata.outputs.version }} already exists - skipped"
+              echo "⏭️ Version ${VERSION} already exists - skipped"
+              echo "skipped|${MODULE}|${VERSION}|Already exists" > "$RESULT_FILE"
             else
               echo "⚠️ Module skipped"
+              echo "skipped|${MODULE}|${VERSION}|Skipped" > "$RESULT_FILE"
             fi
           elif [[ "${{ steps.publish.outputs.publish-success }}" == "true" ]]; then
-            echo "✅ Successfully published ${{ steps.metadata.outputs.acr-repo }}:${{ steps.metadata.outputs.version }}"
+            echo "✅ Successfully published ${MODULE}:${VERSION}"
+            echo "success|${MODULE}|${VERSION}|Published" > "$RESULT_FILE"
           elif [[ "${{ steps.publish.outcome }}" == "failure" ]]; then
-            echo "❌ Failed to publish ${{ steps.metadata.outputs.acr-repo }}:${{ steps.metadata.outputs.version }}"
+            echo "❌ Failed to publish ${MODULE}:${VERSION}"
+            echo "failure|${MODULE}|${VERSION}|Failed" > "$RESULT_FILE"
           else
-            echo "⚠️ Unknown status for ${{ steps.metadata.outputs.acr-repo }}:${{ steps.metadata.outputs.version }}"
+            echo "⚠️ Unknown status for ${MODULE}:${VERSION}"
+            echo "unknown|${MODULE}|${VERSION}|Unknown" > "$RESULT_FILE"
           fi
+
+      - name: Upload publish result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: publish-result-${{ steps.metadata.outputs.category }}-${{ steps.metadata.outputs.module-name }}-${{ steps.metadata.outputs.version }}
+          path: /tmp/publish-results/
+          retention-days: 1
 
   cleanup-orphaned-modules:
     name: Cleanup Orphaned Modules
@@ -434,6 +456,13 @@ jobs:
     if: always() && needs.detect-changed-modules.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Download all publish results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: publish-result-*
+          path: /tmp/all-results
+          merge-multiple: true
+
       - name: Generate summary
         run: |
           set -euo pipefail
@@ -454,23 +483,48 @@ jobs:
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 📦 Module Processing" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Module Processing Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Module details are available in individual job logs above." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Check each module's publish job for specific status information." >> $GITHUB_STEP_SUMMARY
           
-          # Add cleanup summary if it ran
-          if [[ "${{ needs.cleanup-orphaned-modules.result }}" != "skipped" ]]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "---" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "## 🧹 Cleanup Status" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            if [[ "${{ needs.cleanup-orphaned-modules.result }}" == "success" ]]; then
-              echo "✅ Orphaned module cleanup completed successfully" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "⚠️ Orphaned module cleanup completed with warnings or errors" >> $GITHUB_STEP_SUMMARY
-            fi
+          # Aggregate results from all matrix jobs
+          SUCCESS_COUNT=0
+          FAILED_COUNT=0
+          SKIPPED_COUNT=0
+          
+          echo "| Module | Version | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ -d "/tmp/all-results" ]]; then
+            for result_file in /tmp/all-results/*.txt; do
+              if [[ -f "$result_file" ]]; then
+                while IFS='|' read -r status module version message; do
+                  case "$status" in
+                    success)
+                      echo "| \`${module}\` | \`${version}\` | ✅ ${message} |" >> $GITHUB_STEP_SUMMARY
+                      ((SUCCESS_COUNT++))
+                      ;;
+                    failure)
+                      echo "| \`${module}\` | \`${version}\` | ❌ ${message} |" >> $GITHUB_STEP_SUMMARY
+                      ((FAILED_COUNT++))
+                      ;;
+                    skipped)
+                      echo "| \`${module}\` | \`${version}\` | ⏭️ ${message} |" >> $GITHUB_STEP_SUMMARY
+                      ((SKIPPED_COUNT++))
+                      ;;
+                    *)
+                      echo "| \`${module}\` | \`${version}\` | ⚠️ ${message} |" >> $GITHUB_STEP_SUMMARY
+                      ;;
+                  esac
+                done < "$result_file"
+              fi
+            done
+          else
+            echo "| - | - | No results found |" >> $GITHUB_STEP_SUMMARY
           fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Published:** ${SUCCESS_COUNT}" >> $GITHUB_STEP_SUMMARY
+          echo "- ❌ **Failed:** ${FAILED_COUNT}" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏭️ **Skipped:** ${SKIPPED_COUNT}" >> $GITHUB_STEP_SUMMARY
