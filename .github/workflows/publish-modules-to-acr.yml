@@ -486,6 +486,20 @@ jobs:
           echo "## 📦 Module Processing Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
+          # Debug: Check what was downloaded
+          echo "Checking downloaded artifacts..."
+          if [[ -d "/tmp/all-results" ]]; then
+            echo "Contents of /tmp/all-results:"
+            ls -la /tmp/all-results/ || echo "Failed to list directory"
+            echo ""
+          else
+            echo "ERROR: /tmp/all-results directory does not exist"
+            echo "| Module | Version | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|---------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| - | - | ⚠️ No results directory found |" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          
           # Aggregate results from all matrix jobs
           SUCCESS_COUNT=0
           FAILED_COUNT=0
@@ -494,10 +508,24 @@ jobs:
           echo "| Module | Version | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|---------|--------|" >> $GITHUB_STEP_SUMMARY
           
-          if [[ -d "/tmp/all-results" ]]; then
-            for result_file in /tmp/all-results/*.txt; do
-              if [[ -f "$result_file" ]]; then
+          # Check if any .txt files exist
+          shopt -s nullglob
+          result_files=(/tmp/all-results/*.txt)
+          
+          if [[ ${#result_files[@]} -eq 0 ]]; then
+            echo "WARNING: No .txt files found in /tmp/all-results/"
+            echo "| - | - | ⚠️ No result files found |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Found ${#result_files[@]} result file(s)"
+            
+            for result_file in "${result_files[@]}"; do
+              echo "Processing: $result_file"
+              
+              if [[ -f "$result_file" && -s "$result_file" ]]; then
                 while IFS='|' read -r status module version message; do
+                  # Skip empty lines
+                  [[ -z "$status" ]] && continue
+                  
                   case "$status" in
                     success)
                       echo "| \`${module}\` | \`${version}\` | ✅ ${message} |" >> $GITHUB_STEP_SUMMARY
@@ -516,10 +544,10 @@ jobs:
                       ;;
                   esac
                 done < "$result_file"
+              else
+                echo "WARNING: File $result_file is empty or not readable"
               fi
             done
-          else
-            echo "| - | - | No results found |" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -528,3 +556,5 @@ jobs:
           echo "- ✅ **Published:** ${SUCCESS_COUNT}" >> $GITHUB_STEP_SUMMARY
           echo "- ❌ **Failed:** ${FAILED_COUNT}" >> $GITHUB_STEP_SUMMARY
           echo "- ⏭️ **Skipped:** ${SKIPPED_COUNT}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total modules processed:** $((SUCCESS_COUNT + FAILED_COUNT + SKIPPED_COUNT))" >> $GITHUB_STEP_SUMMARY
