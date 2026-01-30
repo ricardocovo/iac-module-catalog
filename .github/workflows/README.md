@@ -9,7 +9,7 @@ This workflow automatically publishes Bicep modules to Azure Container Registry 
 - **Automatic Publishing**: Publishes modules when `main.bicep` files change in the `catalog/` directory
 - **Version Detection**: Extracts version from AVM module references
 - **Duplicate Prevention**: Only publishes if the version doesn't already exist in ACR
-- **Parallel Processing**: Publishes multiple modules concurrently (max 5 at a time)
+- **Parallel Processing**: Publishes multiple modules concurrently (max 3 at a time)
 - **OIDC Authentication**: Uses Azure workload identity federation (no long-lived secrets)
 - **Security Hardened**: Least privilege permissions, pinned action versions
 
@@ -202,6 +202,6 @@ View workflow execution details:
 ### Cost Optimization
 
 - **Changed Files Detection**: Only processes modified modules
-- **Parallel Processing**: Maximum 5 concurrent publishes
+- **Parallel Processing**: Maximum 3 concurrent publishes
 - **Skip Existing**: Doesn't republish unchanged versions
 - **Minimal Runner Time**: Optimized steps for fast execution
