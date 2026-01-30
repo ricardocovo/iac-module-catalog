@@ -237,11 +237,10 @@ jobs:
           
           echo "Tagging major version: v${MAJOR_VERSION}"
           
-          # Use az acr import with explicit subscription to create major version tag
-          # This requires Contributor or AcrPush + Reader on the ACR resource
+          # Use az acr import to create major version tag
+          # Note: Subscription context is already set by azure/login
           az acr import \
             --name "$ACR_NAME" \
-            --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             --source "${ACR_NAME}.azurecr.io/${ACR_REPO}:${VERSION}" \
             --image "${ACR_REPO}:v${MAJOR_VERSION}" \
             --force
@@ -431,7 +430,7 @@ jobs:
 
   summary:
     name: Publish Summary
-    needs: [detect-changed-modules, publish-modules, cleanup-orphaned-modules]
+    needs: [detect-changed-modules, publish-modules]
     if: always() && needs.detect-changed-modules.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
     steps:
