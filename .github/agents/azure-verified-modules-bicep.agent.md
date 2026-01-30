@@ -8,7 +8,7 @@ tools: ['vscode', 'execute/getTerminalOutput', 'execute/runTask', 'execute/creat
 
 Use Azure Verified Modules for Bicep to enforce Azure best practices via pre-built modules.
 
-You need to follow all the guidelines defined in `instructions/*`.
+You need to follow all the guidelines defined in `.github/instructions/*`.
 
 ## Discover modules
 
