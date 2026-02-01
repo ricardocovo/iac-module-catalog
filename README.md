@@ -15,7 +15,7 @@ This catalog provides production-ready, validated Bicep modules for enterprise A
 
 ## 📦 Module Catalog
 
-**Total: 29 modules across 8 categories**
+**Total: 30 modules across 9 categories**
 
 | Category | Modules | Description |
 |----------|---------|-------------|
@@ -27,6 +27,7 @@ This catalog provides production-ready, validated Bicep modules for enterprise A
 | [Storage](catalog/storage/) | 2 | Storage Accounts, Container Registries |
 | [Monitoring](catalog/monitoring/) | 2 | Log Analytics, Application Insights |
 | [Security](catalog/security/) | 2 | Managed Identities, Key Vaults |
+| [Integration](catalog/integration/) | 1 | Logic Apps Workflows |
 
 📖 **[View Module Details](catalog/README.md)**
 
