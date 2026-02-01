@@ -1,4 +1,4 @@
-name: Publish Bicep Modules to ACR
+name: Publish Modules to ACR
 
 on:
   # push:
