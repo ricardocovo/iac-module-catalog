@@ -35,6 +35,7 @@ This catalog provides validated Bicep module implementations for enterprise Azur
 | **🗄️ Data** | [SQL Server](data/sql-server/) | [0.20.1](data/sql-server/0.20.1/), [0.20.2](data/sql-server/0.20.2/), [0.20.3](data/sql-server/0.20.3/), [0.21.0](data/sql-server/0.21.0/), [0.21.1](data/sql-server/0.21.1/) |
 | **🗄️ Data** | [PostgreSQL Flexible Server](data/postgresql-flexible-server/) | [0.13.1](data/postgresql-flexible-server/0.13.1/), [0.13.2](data/postgresql-flexible-server/0.13.2/), [0.14.0](data/postgresql-flexible-server/0.14.0/), [0.15.0](data/postgresql-flexible-server/0.15.0/), [0.15.1](data/postgresql-flexible-server/0.15.1/) |
 | **🗄️ Data** | [Service Bus Namespace](data/service-bus-namespace/) | [0.14.0](data/service-bus-namespace/0.14.0/), [0.14.1](data/service-bus-namespace/0.14.1/), [0.15.0](data/service-bus-namespace/0.15.0/), [0.15.1](data/service-bus-namespace/0.15.1/), [0.16.0](data/service-bus-namespace/0.16.0/) |
+| **🔄 Integration** | [Logic App Workflow](integration/logic-app-workflow/) | [0.5.0](integration/logic-app-workflow/0.5.0/) |
 
 ## Canadian FSI Security Compliance
 
