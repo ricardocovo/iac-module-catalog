@@ -217,7 +217,7 @@ The [GitHub Actions workflow](.github/workflows/README.md) automatically publish
 
 ## 📊 Module Statistics
 
-- **Total Modules**: 27
+- **Total Modules**: 29
 - **Categories**: 8
 - **Azure Services**: 20+ Azure resource types
 - **Lines of Code**: ~2,000 LOC
@@ -254,4 +254,4 @@ This project contains enterprise Bicep module templates for Azure infrastructure
 
 ---
 
-**Last Updated**: January 2026 | **Modules**: 27 | **Status**: Production Ready 
+**Last Updated**: January 2026 | **Modules**: 29 | **Status**: Production Ready 
