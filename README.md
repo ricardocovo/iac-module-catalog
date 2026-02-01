@@ -15,14 +15,14 @@ This catalog provides production-ready, validated Bicep modules for enterprise A
 
 ## 📦 Module Catalog
 
-**Total: 29 modules across 8 categories**
+**Total: 30 modules across 8 categories**
 
 | Category | Modules | Description |
 |----------|---------|-------------|
 | [Network](catalog/network/) | 9 | Hub-spoke networking, Azure Firewall, Bastion, VPN, DNS |
 | [AI & ML](catalog/ai/) | 3 | Azure OpenAI, AI Search, Machine Learning Workspace |
 | [Compute & Web](catalog/compute/) | 4 | App Service Plans, Web Apps, Function Apps, Static Web Apps |
-| [Containers](catalog/containers/) | 2 | Container Apps Environment, Container Apps |
+| [Containers](catalog/containers/) | 3 | Container Apps Environment, Container Apps, Container Jobs |
 | [Data & Messaging](catalog/data/) | 5 | Redis, Cosmos DB, SQL, PostgreSQL, Service Bus |
 | [Storage](catalog/storage/) | 2 | Storage Accounts, Container Registries |
 | [Monitoring](catalog/monitoring/) | 2 | Log Analytics, Application Insights |
@@ -217,7 +217,7 @@ The [GitHub Actions workflow](.github/workflows/README.md) automatically publish
 
 ## 📊 Module Statistics
 
-- **Total Modules**: 29
+- **Total Modules**: 30
 - **Categories**: 8
 - **Azure Services**: 20+ Azure resource types
 - **Lines of Code**: ~2,000 LOC
@@ -246,7 +246,7 @@ This project contains enterprise Bicep module templates for Azure infrastructure
 ## 🗺️ Roadmap
 
 - [ ] Add Event Grid module for event-driven architectures
-- [ ] Include Container Apps Jobs for batch processing
+- [x] Include Container Apps Jobs for batch processing
 - [ ] Add API Management module for API gateway
 - [ ] Create Azure Monitor Private Link Scope module
 - [ ] Develop sample end-to-end deployment orchestration
@@ -254,4 +254,4 @@ This project contains enterprise Bicep module templates for Azure infrastructure
 
 ---
 
-**Last Updated**: January 2026 | **Modules**: 29 | **Status**: Production Ready 
+**Last Updated**: February 2026 | **Modules**: 30 | **Status**: Production Ready 
