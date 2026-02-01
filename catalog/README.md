@@ -21,6 +21,7 @@ This catalog provides validated Bicep module implementations for enterprise Azur
 | **💻 Compute** | [App Service Plan](compute/app-service-plan/) | [0.3.0](compute/app-service-plan/0.3.0/), [0.4.0](compute/app-service-plan/0.4.0/), [0.4.1](compute/app-service-plan/0.4.1/), [0.5.0](compute/app-service-plan/0.5.0/), [0.6.0](compute/app-service-plan/0.6.0/) |
 | **💻 Compute** | [App Service](compute/app-service/) | [0.19.2](compute/app-service/0.19.2/), [0.19.3](compute/app-service/0.19.3/), [0.19.4](compute/app-service/0.19.4/), [0.20.0](compute/app-service/0.20.0/), [0.21.0](compute/app-service/0.21.0/) |
 | **💻 Compute** | [Function App](compute/function-app/) | [0.8.0](compute/function-app/0.8.0/) |
+| **💻 Compute** | [Logic App Workflow](compute/logic-app-workflow/) | [0.5.0](compute/logic-app-workflow/0.5.0/) |
 | **💻 Compute** | [Static Web App](compute/static-web-app/) | [0.9.3](compute/static-web-app/0.9.3/) |
 | **💾 Storage** | [Storage Account](storage/storage-account/) | [0.27.1](storage/storage-account/0.27.1/), [0.28.0](storage/storage-account/0.28.0/), [0.29.0](storage/storage-account/0.29.0/), [0.30.0](storage/storage-account/0.30.0/), [0.31.0](storage/storage-account/0.31.0/) |
 | **💾 Storage** | [Container Registry](storage/container-registry/) | [0.9.0](storage/container-registry/0.9.0/), [0.9.1](storage/container-registry/0.9.1/), [0.9.2](storage/container-registry/0.9.2/), [0.9.3](storage/container-registry/0.9.3/), [0.10.0](storage/container-registry/0.10.0/) |

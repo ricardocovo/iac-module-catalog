@@ -15,13 +15,13 @@ This catalog provides production-ready, validated Bicep modules for enterprise A
 
 ## 📦 Module Catalog
 
-**Total: 29 modules across 8 categories**
+**Total: 30 modules across 8 categories**
 
 | Category | Modules | Description |
 |----------|---------|-------------|
 | [Network](catalog/network/) | 9 | Hub-spoke networking, Azure Firewall, Bastion, VPN, DNS |
 | [AI & ML](catalog/ai/) | 3 | Azure OpenAI, AI Search, Machine Learning Workspace |
-| [Compute & Web](catalog/compute/) | 4 | App Service Plans, Web Apps, Function Apps, Static Web Apps |
+| [Compute & Web](catalog/compute/) | 5 | App Service Plans, Web Apps, Function Apps, Logic Apps, Static Web Apps |
 | [Containers](catalog/containers/) | 2 | Container Apps Environment, Container Apps |
 | [Data & Messaging](catalog/data/) | 5 | Redis, Cosmos DB, SQL, PostgreSQL, Service Bus |
 | [Storage](catalog/storage/) | 2 | Storage Accounts, Container Registries |

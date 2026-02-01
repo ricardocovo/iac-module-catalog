@@ -9,6 +9,7 @@ Azure Verified Modules for compute and web services in the Microsoft Foundry lan
 | [App Service Plan](app-service-plan/) | `avm/res/web/serverfarm` | [0.3.0](app-service-plan/0.3.0/) \| [0.4.0](app-service-plan/0.4.0/) \| [0.4.1](app-service-plan/0.4.1/) \| [0.5.0](app-service-plan/0.5.0/) \| [0.6.0](app-service-plan/0.6.0/) | App Service Plan for hosting |
 | [App Service](app-service/) | `avm/res/web/site` | [0.19.2](app-service/0.19.2/) \| [0.19.3](app-service/0.19.3/) \| [0.19.4](app-service/0.19.4/) \| [0.20.0](app-service/0.20.0/) \| [0.21.0](app-service/0.21.0/) | App Service (Web App) for web applications |
 | [Function App](function-app/) | `avm/res/web/site` | [0.8.0](function-app/0.8.0/) | Azure Function App for serverless compute |
+| [Logic App Workflow](logic-app-workflow/) | `avm/res/logic/workflow` | [0.5.0](logic-app-workflow/0.5.0/) | Logic App Workflows for automated integration scenarios |
 | [Static Web App](static-web-app/) | `avm/res/web/static-site` | [0.9.3](static-web-app/0.9.3/) | Azure Static Web Apps for static content and serverless APIs |
 
 ## Usage Example
