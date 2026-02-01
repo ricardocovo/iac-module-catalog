@@ -27,8 +27,9 @@ Application hosting and web services
 - App Service Plans
 - App Services (Web Apps)
 - Function Apps (Serverless)
+- Static Web Apps
 
-**Total: 3 modules**
+**Total: 4 modules**
 
 ### 💾 [Storage Modules](storage/)
 Data storage and container management
@@ -137,10 +138,10 @@ When adding new modules:
 
 ## Module Count Summary
 
-**Total Modules: 27**
+**Total Modules: 29**
 - Network: 9
 - AI/ML: 3  
-- Compute: 2
+- Compute: 4
 - Storage: 2
 - Monitoring: 2
 - Security: 2
