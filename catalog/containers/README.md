@@ -6,6 +6,7 @@ Azure Verified Modules for containerized applications in the Microsoft Foundry l
 
 | Module | AVM Reference | Versions | Description |
 |--------|--------------|----------|-------------|
+| [AKS Managed Cluster](managed-cluster/) | `avm/res/container-service/managed-cluster` | [0.12.0](managed-cluster/0.12.0/) | Azure Kubernetes Service (AKS) managed cluster |
 | [Container Apps Environment](container-apps-environment/) | `avm/res/app/managed-environment` | [0.10.2](container-apps-environment/0.10.2/) \| [0.11.0](container-apps-environment/0.11.0/) \| [0.11.1](container-apps-environment/0.11.1/) \| [0.11.2](container-apps-environment/0.11.2/) \| [0.11.3](container-apps-environment/0.11.3/) | Container Apps managed environment |
 | [Container App](container-app/) | `avm/res/app/container-app` | [0.18.0](container-app/0.18.0/) \| [0.18.1](container-app/0.18.1/) \| [0.18.2](container-app/0.18.2/) \| [0.19.0](container-app/0.19.0/) \| [0.20.0](container-app/0.20.0/) | Container App deployment |
 | [Container App Job](job/) | `avm/res/app/job` | [0.7.1](job/0.7.1/) | Container App Job for batch and scheduled tasks |
